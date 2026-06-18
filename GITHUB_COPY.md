@@ -2,7 +2,7 @@
 
 ## Repository Name
 
-`emotion-museum`
+`muse-of-moods`
 
 ## Short Description
 
@@ -10,7 +10,7 @@ An interactive emotion atlas for exploring public-domain and open-access artwork
 
 ## Website
 
-<https://emotion-museum.kesenlab.workers.dev>
+<https://muse-of-moods.kesenlab.workers.dev>
 
 ## Topics
 
@@ -26,7 +26,7 @@ Explore paintings through mood, movement, and visual association.
 
 ## Longer English Pitch
 
-Emotion Museum is an interactive artwork atlas that organizes public-domain and open-access paintings by emotional resonance. It lets viewers move through a luminous field of artworks, focus on specific moods, inspect individual works, and generate shareable artwork cards.
+Muse of Moods is an interactive artwork atlas that organizes public-domain and open-access paintings by emotional resonance. It lets viewers move through a luminous field of artworks, focus on specific moods, inspect individual works, and generate shareable artwork cards.
 
 ## Longer Chinese Pitch
 

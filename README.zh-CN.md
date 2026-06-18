@@ -1,16 +1,16 @@
-# 情绪美术馆
+# Muse of Moods（情绪美术馆）
 
-**情绪美术馆** 是一个以情绪为入口的互动艺术星图。它把传世画作放入一张可漫游的情绪地图中，让用户不只按照年代、画派或艺术家浏览作品，也可以从“此刻的心情”进入艺术史。
+**Muse of Moods（情绪美术馆）** 是一个以情绪为入口的互动艺术星图。它把传世画作放入一张可漫游的情绪地图中，让用户不只按照年代、画派或艺术家浏览作品，也可以从“此刻的心情”进入艺术史。
 
-在线演示：<https://emotion-museum.kesenlab.workers.dev>
+在线演示：<https://muse-of-moods.kesenlab.workers.dev>
 
 English documentation: [README.md](./README.md)
 
-[打开 Demo 页面](https://emotion-museum.kesenlab.workers.dev)
+[打开 Demo 页面](https://muse-of-moods.kesenlab.workers.dev)
 
 ## 项目预览
 
-![情绪美术馆概览](./github-assets/output/emotion-museum-github-01.png)
+![情绪美术馆概览](./github-assets/output/muse-of-moods-github-01.png)
 
 ## 项目定位
 

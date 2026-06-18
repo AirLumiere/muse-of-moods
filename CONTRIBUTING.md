@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for your interest in Emotion Museum.
+Thanks for your interest in Muse of Moods.
 
 This project welcomes improvements to metadata quality, artwork attribution, accessibility, performance, interaction design, and documentation.
 
@@ -33,4 +33,4 @@ Good pull requests usually include:
 
 ## Scope
 
-Emotion Museum is intentionally lightweight. Please avoid adding heavy frameworks or build complexity unless the change clearly improves maintainability, performance, or accessibility.
+Muse of Moods is intentionally lightweight. Please avoid adding heavy frameworks or build complexity unless the change clearly improves maintainability, performance, or accessibility.

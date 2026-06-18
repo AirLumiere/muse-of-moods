@@ -1,15 +1,15 @@
 {
-  "name": "emotion-museum",
+  "name": "muse-of-moods",
   "version": "0.1.0",
   "private": true,
   "description": "An interactive emotion atlas for exploring public-domain and open-access artworks.",
-  "homepage": "https://emotion-museum.kesenlab.workers.dev",
+  "homepage": "https://muse-of-moods.kesenlab.workers.dev",
   "repository": {
     "type": "git",
-    "url": "https://github.com/AirLumiere/emotion-museum.git"
+    "url": "https://github.com/AirLumiere/muse-of-moods.git"
   },
   "bugs": {
-    "url": "https://github.com/AirLumiere/emotion-museum/issues"
+    "url": "https://github.com/AirLumiere/muse-of-moods/issues"
   },
   "keywords": [
     "art",

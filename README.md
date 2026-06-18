@@ -1,24 +1,24 @@
-# Emotion Museum
+# Muse of Moods
 
-**Emotion Museum** is an interactive artwork atlas for exploring paintings through mood, movement, and visual association.
+**Muse of Moods** is an interactive artwork atlas for exploring paintings through mood, movement, and visual association.
 
-Instead of browsing artworks by period, artist, or collection alone, Emotion Museum arranges public-domain and open-access artworks across an emotional field. Users can move through a luminous atlas of paintings, focus on a specific feeling, inspect individual works, and generate shareable artwork cards.
+Instead of browsing artworks by period, artist, or collection alone, Muse of Moods arranges public-domain and open-access artworks across an emotional field. Users can move through a luminous atlas of paintings, focus on a specific feeling, inspect individual works, and generate shareable artwork cards.
 
-Live demo: <https://emotion-museum.kesenlab.workers.dev>
+Live demo: <https://muse-of-moods.kesenlab.workers.dev>
 
 Chinese documentation: [README.zh-CN.md](./README.zh-CN.md)
 
-[Launch the demo](https://emotion-museum.kesenlab.workers.dev)
+[Launch the demo](https://muse-of-moods.kesenlab.workers.dev)
 
 ## Preview
 
-![Emotion Museum overview](./github-assets/output/emotion-museum-github-01.png)
+![Muse of Moods overview](./github-assets/output/muse-of-moods-github-01.png)
 
 ## Why It Exists
 
 Art history is often organized by chronology, school, institution, and authorship. Those structures are important, but they are not always how people encounter images in daily life.
 
-Emotion Museum experiments with a different entry point: mood as an interface. It asks a simple question:
+Muse of Moods experiments with a different entry point: mood as an interface. It asks a simple question:
 
 > What if a museum could be navigated by how an image feels?
 
@@ -49,7 +49,7 @@ The project is designed as a lightweight digital humanities project, a visual br
 
 ## Demo
 
-<https://emotion-museum.kesenlab.workers.dev>
+<https://muse-of-moods.kesenlab.workers.dev>
 
 ## Quick Start
 
@@ -113,7 +113,7 @@ Before reusing or redistributing the bundled artwork images, review the source l
 
 ## Design Notes
 
-Emotion Museum uses mood as a spatial interface. Each artwork has up to three associated emotions. The initial atlas blends semantic placement with an organic nebula-like distribution so the view feels alive rather than grid-based. When an emotion is selected, matching artworks are gathered into focus and connected back to the selected mood field.
+Muse of Moods uses mood as a spatial interface. Each artwork has up to three associated emotions. The initial atlas blends semantic placement with an organic nebula-like distribution so the view feels alive rather than grid-based. When an emotion is selected, matching artworks are gathered into focus and connected back to the selected mood field.
 
 The interface is intentionally bilingual in places: the product identity and mood system are readable in both Chinese and English, while the current artwork notes are primarily written in Chinese.
 
