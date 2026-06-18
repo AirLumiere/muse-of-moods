@@ -1,0 +1,3802 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>情绪美术馆 Emotion Museum</title>
+  <style>
+    :root {
+      --bg: #060713;
+      --ink: #f7efe2;
+      --muted: #a7b0c4;
+      --quiet: #77e5ff;
+      --wild: #ff6a9b;
+      --shadow: #8067ff;
+      --light: #f4c96b;
+      --line: rgba(255, 255, 255, .15);
+      --panel: rgba(8, 10, 21, .76);
+      --panel-strong: rgba(10, 12, 23, .94);
+      --seal: #f1be62;
+    }
+
+    * { box-sizing: border-box; }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      letter-spacing: 0;
+    }
+
+    button { font: inherit; }
+
+    .app {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      isolation: isolate;
+      background:
+        linear-gradient(140deg, rgba(7, 9, 22, 1) 0%, rgba(16, 10, 26, 1) 48%, rgba(5, 7, 17, 1) 100%);
+    }
+
+    #timeCanvas {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      width: 100%;
+      height: 100%;
+      opacity: .9;
+    }
+
+    .atlas {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+    }
+
+    .atlas svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .chrome {
+      position: absolute;
+      inset: 18px;
+      z-index: 5;
+      display: grid;
+      grid-template-columns: 360px minmax(0, 1fr) 398px;
+      gap: 16px;
+      pointer-events: none;
+    }
+
+    .chrome,
+    .panel,
+    .hud {
+      transition: opacity .72s ease, transform .72s cubic-bezier(.2, .82, .2, 1), filter .72s ease;
+    }
+
+    body.tour-mode .panel.left {
+      opacity: 0;
+      transform: translateX(-34px) scale(.96);
+      filter: blur(10px);
+      pointer-events: none;
+    }
+
+    body.tour-mode .panel.right {
+      opacity: 0;
+      transform: translateX(34px) scale(.96);
+      filter: blur(10px);
+      pointer-events: none;
+    }
+
+    body.tour-mode .hud {
+      opacity: 0;
+      transform: translateY(18px);
+      pointer-events: none;
+    }
+
+    body.tour-mode .axis-layer {
+      opacity: .16;
+      transition: opacity .72s ease;
+    }
+
+    body.tour-mode .link-line {
+      stroke-dasharray: 2 10;
+      animation-duration: .86s;
+      filter: drop-shadow(0 0 12px rgba(255, 227, 142, .38));
+    }
+
+    .tour-stage {
+      position: absolute;
+      left: 42px;
+      top: 36px;
+      z-index: 7;
+      display: grid;
+      grid-template-columns: minmax(280px, 34vw);
+      align-items: start;
+      gap: 14px;
+      transform: translate(-26px, 0);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .48s ease, transform .48s ease;
+    }
+
+    body.tour-mode .tour-stage {
+      opacity: 1;
+      transform: translate(0, 0);
+      pointer-events: auto;
+    }
+
+    .tour-title {
+      position: relative;
+      border: 1px solid rgba(255, 227, 142, .34);
+      border-radius: 8px;
+      background:
+        linear-gradient(90deg, color-mix(in srgb, var(--tour-color, #f1be62) 34%, transparent), transparent 54%),
+        radial-gradient(circle at 14% 16%, color-mix(in srgb, var(--tour-color, #f1be62) 38%, transparent), transparent 34%),
+        rgba(4, 5, 13, .48);
+      backdrop-filter: blur(20px);
+      box-shadow: 0 0 64px color-mix(in srgb, var(--tour-color, #f1be62) 28%, transparent), 0 22px 70px rgba(0, 0, 0, .42);
+      padding: 20px 22px 18px;
+      overflow: hidden;
+    }
+
+    .tour-title::before {
+      content: "";
+      position: absolute;
+      inset: 11px;
+      border: 1px solid color-mix(in srgb, var(--tour-color, #f1be62) 42%, transparent);
+      pointer-events: none;
+    }
+
+    .tour-title::after {
+      content: "";
+      position: absolute;
+      left: 22px;
+      right: 34%;
+      bottom: 17px;
+      height: 1px;
+      background: linear-gradient(90deg, var(--tour-color, #f1be62), transparent);
+      opacity: .7;
+    }
+
+    .tour-title b {
+      display: block;
+      position: relative;
+      color: #fff7df;
+      font-size: clamp(58px, 8.2vw, 126px);
+      line-height: .86;
+      font-weight: 950;
+      letter-spacing: 0;
+      paint-order: stroke;
+      stroke: rgba(0, 0, 0, .48);
+      stroke-width: 2px;
+      text-shadow:
+        0 0 28px color-mix(in srgb, var(--tour-color, #f1be62) 62%, transparent),
+        0 10px 34px rgba(0, 0, 0, .64);
+    }
+
+    .tour-title span {
+      display: block;
+      position: relative;
+      margin-top: 10px;
+      color: color-mix(in srgb, var(--tour-color, #f1be62) 76%, #fff);
+      font-family: "Didot", "Bodoni 72", "Times New Roman", serif;
+      font-size: 14px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    .tour-poem {
+      position: relative;
+      max-width: 28em;
+      margin: 13px 0 0;
+      color: rgba(247, 239, 226, .88);
+      font-size: 15px;
+      line-height: 1.72;
+      font-weight: 650;
+      text-shadow: 0 2px 18px rgba(0, 0, 0, .68);
+    }
+
+    .tour-keywords {
+      position: relative;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 15px;
+      padding-bottom: 10px;
+    }
+
+    .tour-keywords i {
+      display: inline-flex;
+      border: 1px solid color-mix(in srgb, var(--tour-color, #f1be62) 46%, rgba(255,255,255,.18));
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--tour-color, #f1be62) 16%, rgba(255,255,255,.055));
+      color: rgba(255, 247, 223, .9);
+      padding: 5px 9px;
+      font-size: 11px;
+      font-style: normal;
+      font-weight: 760;
+      letter-spacing: .02em;
+    }
+
+    .tour-nav-hint {
+      position: relative;
+      margin-top: 12px;
+      color: rgba(247, 239, 226, .46);
+      font-size: 11px;
+      font-family: "Didot", "Bodoni 72", "Times New Roman", serif;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    body.tour-flash .tour-title {
+      animation: tourFlash .5s ease;
+    }
+
+    @keyframes tourFlash {
+      0% { transform: translateY(0) scale(1); filter: brightness(1); }
+      38% { transform: translateY(-3px) scale(1.018); filter: brightness(1.35); }
+      100% { transform: translateY(0) scale(1); filter: brightness(1); }
+    }
+
+    .tour-controls {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .tour-action {
+      min-height: 40px;
+      border: 1px solid rgba(255, 255, 255, .16);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .07);
+      color: #fff3c4;
+      padding: 0 16px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 820;
+      backdrop-filter: blur(18px);
+      justify-self: start;
+    }
+
+    .tour-action.primary {
+      border-color: color-mix(in srgb, var(--tour-color, #f1be62) 46%, rgba(255,255,255,.16));
+      background: color-mix(in srgb, var(--tour-color, #f1be62) 18%, rgba(255,255,255,.07));
+      box-shadow: 0 0 24px color-mix(in srgb, var(--tour-color, #f1be62) 20%, transparent);
+    }
+
+    .panel {
+      pointer-events: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      backdrop-filter: blur(22px);
+      box-shadow: 0 30px 90px rgba(0, 0, 0, .48);
+      overflow: hidden;
+    }
+
+    .left {
+      align-self: start;
+      padding: 18px;
+      max-height: calc(100vh - 36px);
+    }
+
+    .right {
+      justify-self: end;
+      align-self: start;
+      width: 398px;
+      max-height: calc(100vh - 36px);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .sigil {
+      position: relative;
+      width: 52px;
+      height: 52px;
+      border-radius: 8px;
+      background:
+        linear-gradient(145deg, #fed84a, #f4b923);
+      border: 1px solid rgba(255, 236, 150, .95);
+      box-shadow: 0 0 34px rgba(254, 216, 74, .24), inset 0 0 0 1px rgba(82, 55, 0, .22);
+      overflow: hidden;
+    }
+
+    .sigil::before {
+      content: "";
+      position: absolute;
+      inset: 7px 13px;
+      border: 1.5px solid rgba(247, 239, 226, .86);
+      border-radius: 3px;
+      background:
+        radial-gradient(circle at 50% 42%, rgba(255,51,95,.18), transparent 28%),
+        linear-gradient(180deg, rgba(30,34,52,.96), rgba(7,9,20,.98));
+      box-shadow: inset 0 0 0 4px rgba(8,10,22,.72), 0 0 18px rgba(10,12,23,.38);
+    }
+
+    .sigil::after {
+      content: "♥";
+      position: absolute;
+      inset: 7px 13px;
+      display: grid;
+      place-items: center;
+      color: #ff335f;
+      font-size: 20px;
+      font-weight: 900;
+      text-shadow: 0 0 12px rgba(255,51,95,.72), 0 0 28px rgba(255,51,95,.34);
+      transform: translateY(1px);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 25px;
+      line-height: 1.05;
+      font-weight: 920;
+    }
+
+    .brand-en {
+      display: flex;
+      align-items: baseline;
+      gap: 7px;
+      flex-wrap: nowrap;
+      white-space: nowrap;
+      margin-top: 3px;
+      color: var(--seal);
+      font-family: "Didot", "Bodoni 72", "Times New Roman", serif;
+      font-size: 14px;
+      line-height: 1.05;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    .brand-signature {
+      color: #ffd84f;
+      font-family: "Bradley Hand", "Comic Sans MS", "Segoe Print", cursive;
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: .01em;
+      text-transform: none;
+      text-shadow: 0 0 8px rgba(255, 216, 79, .32);
+      transform: rotate(-1deg) translateY(-1px);
+      display: inline-block;
+    }
+
+    .subtitle {
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.42;
+    }
+
+    .subtitle-en {
+      margin-top: 3px;
+      color: rgba(247, 239, 226, .56);
+      font-family: "Didot", "Bodoni 72", "Times New Roman", serif;
+      font-size: 11px;
+      line-height: 1.35;
+      font-style: italic;
+    }
+
+    .section {
+      margin-top: 16px;
+    }
+
+    .section-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 9px;
+      color: #e2e8f8;
+      font-size: 12px;
+      font-weight: 830;
+      text-transform: uppercase;
+    }
+
+    .section-title span:last-child {
+      color: rgba(255, 255, 255, .42);
+      font-weight: 680;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .stat {
+      min-height: 64px;
+      border: 1px solid rgba(255, 255, 255, .13);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, .045);
+      padding: 9px;
+    }
+
+    .stat b {
+      display: block;
+      color: var(--seal);
+      font-size: 25px;
+      line-height: 1;
+      margin-bottom: 7px;
+    }
+
+    .stat span {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.35;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .tool,
+    .source-button {
+      min-height: 40px;
+      border: 1px solid rgba(255, 255, 255, .14);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, .055);
+      color: #eef3ff;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 800;
+      transition: transform .18s ease, border-color .18s ease, background .18s ease;
+    }
+
+    .tool {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      line-height: 1.05;
+    }
+
+    .tool small {
+      display: block;
+      font-size: 8px;
+      font-family: "Didot", "Bodoni 72", "Times New Roman", serif;
+      font-weight: 760;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      opacity: .68;
+    }
+
+    .tool .symbol {
+      font-size: 22px;
+      line-height: .82;
+      font-family: ui-sans-serif, system-ui, sans-serif;
+    }
+
+    .tool:hover,
+    .source-button:hover {
+      transform: translateY(-1px);
+      border-color: rgba(255, 255, 255, .34);
+      background: rgba(255, 255, 255, .1);
+    }
+
+    .tool.primary,
+    .source-button.primary {
+      color: #14111a;
+      border-color: transparent;
+      background: linear-gradient(135deg, #f1be62, #ff668f);
+    }
+
+    .quadrant {
+      position: relative;
+      border: 1px solid rgba(241, 190, 98, .24);
+      border-radius: 8px;
+      background:
+        linear-gradient(135deg, rgba(241, 190, 98, .12), transparent 42%),
+        rgba(255, 255, 255, .045);
+      padding: 12px;
+      color: #dce5f5;
+      font-size: 12px;
+      line-height: 1.62;
+    }
+
+    .compass {
+      width: 100%;
+      height: 272px;
+      display: block;
+      overflow: visible;
+    }
+
+    .compass-shell {
+      position: relative;
+      border: 1px solid rgba(255, 255, 255, .08);
+      border-radius: 8px;
+      background:
+        radial-gradient(circle at 50% 52%, rgba(241,190,98,.16), transparent 38%),
+        radial-gradient(circle at 22% 24%, rgba(119,229,255,.14), transparent 26%),
+        radial-gradient(circle at 78% 68%, rgba(255,106,155,.13), transparent 30%),
+        rgba(4, 6, 16, .22);
+      overflow: hidden;
+    }
+
+    .compass-shell::before,
+    .compass-shell::after {
+      content: "";
+      position: absolute;
+      inset: 13px;
+      border: 1px solid rgba(241,190,98,.18);
+      transform: rotate(45deg);
+      pointer-events: none;
+    }
+
+    .compass-shell::after {
+      inset: 33px;
+      border-color: rgba(119,229,255,.12);
+      transform: rotate(0deg);
+      border-radius: 50%;
+    }
+
+    .compass text {
+      fill: rgba(247, 239, 226, .88);
+      font-size: 11px;
+      font-weight: 780;
+      paint-order: stroke;
+      stroke: rgba(0,0,0,.45);
+      stroke-width: 3px;
+    }
+
+    .compass tspan.en {
+      fill: rgba(247, 239, 226, .56);
+      font-family: "Didot", "Bodoni 72", "Times New Roman", serif;
+      font-size: 7px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+
+    .compass-emotion {
+      cursor: pointer;
+      outline: none;
+    }
+
+    .compass-orbit {
+      fill: none;
+      stroke: rgba(255, 255, 255, .12);
+      stroke-dasharray: 3 8;
+    }
+
+    .compass-axis {
+      stroke: rgba(255, 255, 255, .13);
+      stroke-width: 1;
+      pointer-events: none;
+    }
+
+    #emotionCompass > circle,
+    #emotionCompass > text {
+      pointer-events: none;
+    }
+
+    .compass-hit {
+      fill: transparent;
+      pointer-events: all;
+    }
+
+    .compass-point {
+      fill: var(--emotion-color);
+      filter: drop-shadow(0 0 10px var(--emotion-color));
+      opacity: .9;
+      transition: r .18s ease, opacity .18s ease;
+    }
+
+    .compass-ray {
+      stroke: var(--emotion-color);
+      stroke-width: 1;
+      opacity: .16;
+      transition: opacity .18s ease;
+    }
+
+    .compass-emotion:hover .compass-point,
+    .compass-emotion.active .compass-point {
+      r: 6.5;
+      opacity: 1;
+    }
+
+    .compass-emotion:hover .compass-ray,
+    .compass-emotion.active .compass-ray {
+      opacity: .46;
+    }
+
+    .compass-emotion.active text {
+      fill: #fff7df;
+      stroke: rgba(0, 0, 0, .68);
+    }
+
+    .compass-core {
+      fill: rgba(6, 8, 20, .72);
+      stroke: rgba(241, 190, 98, .48);
+      stroke-width: 1.2;
+    }
+
+    .compass .cardinal {
+      fill: rgba(241, 190, 98, .92);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .compass-note {
+      position: relative;
+      display: grid;
+      place-items: center;
+      min-height: 38px;
+      margin: 11px 0 0;
+      border: 1px solid rgba(241, 190, 98, .42);
+      border-radius: 999px;
+      background:
+        radial-gradient(circle at 22% 50%, rgba(255, 51, 95, .18), transparent 34%),
+        linear-gradient(135deg, rgba(241, 190, 98, .2), rgba(255, 255, 255, .055) 54%, rgba(119, 229, 255, .1));
+      color: #fff3c4;
+      font-size: 13px;
+      line-height: 1;
+      font-weight: 900;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      box-shadow: 0 0 22px rgba(241, 190, 98, .18), inset 0 0 0 1px rgba(255,255,255,.06);
+      overflow: hidden;
+      animation: choosePulse 2.8s ease-in-out infinite;
+    }
+
+    .status {
+      display: none;
+      min-height: 0;
+      margin-top: 0;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.48;
+    }
+
+    .compass-note::before {
+      content: "";
+      position: absolute;
+      inset: 1px auto 1px -38%;
+      width: 36%;
+      background: linear-gradient(90deg, transparent, rgba(255, 247, 223, .32), transparent);
+      transform: skewX(-18deg);
+      animation: chooseSweep 3.6s ease-in-out infinite;
+    }
+
+    .compass-note::after {
+      content: "✦";
+      position: absolute;
+      right: 18px;
+      color: rgba(255, 227, 142, .8);
+      font-size: 12px;
+      text-shadow: 0 0 12px rgba(241, 190, 98, .68);
+    }
+
+    @keyframes choosePulse {
+      0%, 100% { transform: translateY(0); filter: brightness(1); }
+      50% { transform: translateY(-1px); filter: brightness(1.18); }
+    }
+
+    @keyframes chooseSweep {
+      0%, 42% { left: -42%; opacity: 0; }
+      52% { opacity: 1; }
+      100% { left: 112%; opacity: 0; }
+    }
+
+    .hud {
+      pointer-events: none;
+      align-self: end;
+      justify-self: center;
+      padding-bottom: 14px;
+    }
+
+    .hud-card {
+      pointer-events: auto;
+      border: 1px solid rgba(255, 255, 255, .14);
+      border-radius: 8px;
+      background: rgba(8, 10, 21, .68);
+      backdrop-filter: blur(18px);
+      box-shadow: 0 24px 70px rgba(0, 0, 0, .38);
+      padding: 10px 13px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .hud-card b { color: var(--ink); }
+
+    .art-hero {
+      position: relative;
+      height: var(--hero-height, 286px);
+      min-height: 210px;
+      max-height: 430px;
+      background:
+        radial-gradient(circle at 72% 14%, rgba(241, 190, 98, .22), transparent 24%),
+        linear-gradient(135deg, rgba(255,255,255,.045), rgba(0,0,0,.18)),
+        rgba(0, 0, 0, .24);
+      border-bottom: 1px solid var(--line);
+      overflow: hidden;
+    }
+
+    .art-hero .art-backdrop {
+      position: absolute;
+      inset: -16px;
+      width: calc(100% + 32px);
+      height: calc(100% + 32px);
+      object-fit: cover;
+      filter: blur(18px) saturate(1.08) contrast(1.04);
+      opacity: .34;
+      transform: scale(1.05);
+    }
+
+    .art-hero .art-image {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: contain;
+      filter: saturate(1.04) contrast(1.03);
+      padding: 12px;
+    }
+
+    .art-hero::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(180deg, rgba(0,0,0,.18), transparent 18%, transparent 72%, rgba(0, 0, 0, .5));
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .source-pill {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      z-index: 2;
+      border: 1px solid rgba(255, 255, 255, .18);
+      border-radius: 999px;
+      background: rgba(0, 0, 0, .42);
+      padding: 6px 10px;
+      color: #f6f1e6;
+      font-size: 11px;
+      font-weight: 780;
+    }
+
+    .art-body {
+      padding: 16px;
+      overflow: auto;
+    }
+
+    .mood-stack {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-bottom: 12px;
+    }
+
+    .mood-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      border: 1px solid rgba(255, 255, 255, .14);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .058);
+      padding: 6px 9px;
+      color: #e9efff;
+      font-size: 12px;
+      font-weight: 760;
+    }
+
+    .mood-badge i {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--mood);
+      box-shadow: 0 0 13px var(--mood);
+    }
+
+    .art-title {
+      margin: 0;
+      font-size: 23px;
+      line-height: 1.15;
+      font-weight: 920;
+    }
+
+    .artist {
+      margin: 8px 0 14px;
+      color: var(--seal);
+      font-size: 13px;
+      font-weight: 780;
+      line-height: 1.42;
+    }
+
+    .reading {
+      display: grid;
+      gap: 11px;
+      margin-top: 14px;
+    }
+
+    .reading-block {
+      border-top: 1px solid rgba(255, 255, 255, .12);
+      padding-top: 11px;
+    }
+
+    .reading-block b {
+      display: block;
+      margin-bottom: 5px;
+      color: #f7efe2;
+      font-size: 13px;
+      font-weight: 850;
+    }
+
+    .reading-block p {
+      margin: 0;
+      color: #dce3f2;
+      font-size: 13px;
+      line-height: 1.68;
+    }
+
+    .source-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .source-button.share {
+      background:
+        linear-gradient(135deg, rgba(241,190,98,.2), rgba(255,106,155,.16)),
+        rgba(255, 255, 255, .06);
+      border-color: rgba(241, 190, 98, .32);
+    }
+
+    .share-modal[hidden] { display: none; }
+
+    .share-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+
+    .share-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(2, 3, 10, .78);
+      backdrop-filter: blur(18px);
+    }
+
+    .share-sheet {
+      position: relative;
+      z-index: 1;
+      width: min(980px, calc(100vw - 32px));
+      max-height: calc(100vh - 36px);
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      border: 1px solid rgba(255, 255, 255, .16);
+      border-radius: 8px;
+      background:
+        radial-gradient(circle at 18% 8%, rgba(241,190,98,.16), transparent 25%),
+        radial-gradient(circle at 86% 70%, rgba(119,229,255,.14), transparent 28%),
+        rgba(8, 10, 21, .94);
+      box-shadow: 0 34px 120px rgba(0, 0, 0, .64);
+      overflow: hidden;
+    }
+
+    .share-topbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px;
+      border-bottom: 1px solid rgba(255,255,255,.12);
+      color: #eef4ff;
+      font-size: 13px;
+    }
+
+    .share-topbar b {
+      margin-right: auto;
+      font-weight: 860;
+    }
+
+    .share-status {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .share-format {
+      height: 38px;
+      border: 1px solid rgba(255, 255, 255, .14);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, .06);
+      color: #eef4ff;
+      padding: 0 10px;
+      font: inherit;
+      font-weight: 760;
+      outline: none;
+    }
+
+    .share-format:focus {
+      border-color: rgba(241, 190, 98, .72);
+      box-shadow: 0 0 0 3px rgba(241, 190, 98, .16);
+    }
+
+    .share-stage {
+      overflow: auto;
+      padding: 22px;
+      display: grid;
+      grid-template-columns: minmax(0, auto) minmax(0, auto);
+      gap: 18px;
+      place-items: center;
+    }
+
+    .share-card {
+      --card-accent: #f1be62;
+      --card-second: #77e5ff;
+      --card-third: #ff6a9b;
+      width: min(500px, calc(100vw - 76px));
+      aspect-ratio: 3 / 4;
+      position: relative;
+      display: grid;
+      grid-template-rows: auto minmax(0, .96fr) auto;
+      gap: 12px;
+      padding: 20px;
+      overflow: hidden;
+      color: #fbf2e6;
+      background:
+        radial-gradient(circle at 16% 12%, color-mix(in srgb, var(--card-accent) 34%, transparent), transparent 30%),
+        radial-gradient(circle at 86% 34%, color-mix(in srgb, var(--card-second) 24%, transparent), transparent 32%),
+        radial-gradient(circle at 58% 92%, color-mix(in srgb, var(--card-third) 22%, transparent), transparent 36%),
+        linear-gradient(145deg, #10121e 0%, #080a15 54%, #15101d 100%);
+      border: 1px solid color-mix(in srgb, var(--card-accent) 46%, rgba(255,255,255,.16));
+      box-shadow: 0 26px 90px rgba(0,0,0,.5);
+    }
+
+    .share-card::before {
+      content: "";
+      position: absolute;
+      inset: 13px;
+      border: 1px solid rgba(255,255,255,.12);
+      pointer-events: none;
+    }
+
+    .share-card::after {
+      content: "";
+      position: absolute;
+      inset: auto 20px 20px auto;
+      width: 76px;
+      height: 76px;
+      border: 1px solid color-mix(in srgb, var(--card-accent) 56%, transparent);
+      border-radius: 50%;
+      background:
+        linear-gradient(90deg, transparent 49%, color-mix(in srgb, var(--card-accent) 52%, transparent) 50%, transparent 51%),
+        linear-gradient(0deg, transparent 49%, color-mix(in srgb, var(--card-accent) 52%, transparent) 50%, transparent 51%);
+      opacity: .62;
+      pointer-events: none;
+    }
+
+    .share-kicker {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      color: color-mix(in srgb, var(--card-accent) 82%, #fff);
+      font-size: 11px;
+      font-weight: 880;
+      text-transform: uppercase;
+    }
+
+    .share-art {
+      position: relative;
+      z-index: 1;
+      min-height: 0;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.24);
+      overflow: hidden;
+    }
+
+    .share-card:not(.portrait-card) .share-art {
+      aspect-ratio: 1.25 / 1;
+    }
+
+    .share-art .blur {
+      position: absolute;
+      inset: -18px;
+      width: calc(100% + 36px);
+      height: calc(100% + 36px);
+      object-fit: cover;
+      filter: blur(18px) saturate(1.08);
+      opacity: .32;
+      transform: scale(1.06);
+    }
+
+    .share-art .main {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: contain;
+      padding: 10px;
+    }
+
+    .share-copy {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      align-content: start;
+      gap: 10px;
+      min-height: 0;
+    }
+
+    .share-card h3 {
+      margin: 0;
+      font-size: 24px;
+      line-height: 1.08;
+      font-weight: 940;
+      max-height: 56px;
+      overflow: hidden;
+    }
+
+    .share-card.portrait-card {
+      grid-template-rows: auto minmax(0, 1.18fr) auto;
+    }
+
+    .share-card.portrait-card .share-art {
+      justify-self: center;
+      width: 74%;
+      align-self: stretch;
+      aspect-ratio: auto;
+      min-height: 0;
+      box-shadow: 0 0 0 1px color-mix(in srgb, var(--card-accent) 34%, transparent), 0 18px 54px rgba(0,0,0,.34);
+    }
+
+    .share-card.portrait-card .share-art .main {
+      padding: 8px;
+    }
+
+    .share-card.portrait-card h3 {
+      font-size: 22px;
+      max-height: 52px;
+    }
+
+    .share-meta {
+      color: color-mix(in srgb, var(--card-accent) 70%, #fff);
+      font-size: 12px;
+      font-weight: 760;
+      line-height: 1.35;
+    }
+
+    .share-moods {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .share-moods span {
+      border: 1px solid rgba(255,255,255,.14);
+      border-radius: 999px;
+      background: rgba(255,255,255,.07);
+      padding: 4px 8px;
+      font-size: 10px;
+      font-weight: 780;
+    }
+
+    .share-note-grid {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .share-note-grid p {
+      margin: 0;
+      color: #e7edf9;
+      font-size: 11px;
+      line-height: 1.55;
+    }
+
+    .share-note-grid p:first-child {
+      grid-column: 1 / -1;
+      color: #fff4df;
+      font-size: 12px;
+    }
+
+    .share-note-grid b {
+      display: block;
+      margin-bottom: 3px;
+      color: color-mix(in srgb, var(--card-second) 64%, #fff);
+      font-size: 10px;
+      letter-spacing: .04em;
+    }
+
+    .author-card {
+      --card-accent: #f1be62;
+      --card-second: #77e5ff;
+      --card-third: #ff6a9b;
+      width: min(360px, calc(100vw - 76px));
+      aspect-ratio: 3 / 4;
+      position: relative;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      gap: 13px;
+      padding: 20px;
+      overflow: hidden;
+      color: #fbf2e6;
+      border: 1px solid color-mix(in srgb, var(--card-accent) 38%, rgba(255,255,255,.16));
+      background:
+        radial-gradient(circle at 22% 16%, color-mix(in srgb, var(--card-accent) 30%, transparent), transparent 32%),
+        radial-gradient(circle at 82% 76%, color-mix(in srgb, var(--card-second) 20%, transparent), transparent 34%),
+        linear-gradient(145deg, #11131f 0%, #090b16 56%, #15101d 100%);
+      box-shadow: 0 26px 90px rgba(0,0,0,.5);
+    }
+
+    .author-card::before {
+      content: "";
+      position: absolute;
+      inset: 13px;
+      border: 1px solid rgba(255,255,255,.12);
+      pointer-events: none;
+    }
+
+    .author-head {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: 72px minmax(0, 1fr);
+      gap: 12px;
+      align-items: center;
+    }
+
+    .author-avatar {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      color: #12111b;
+      font-size: 22px;
+      font-weight: 940;
+      background:
+        radial-gradient(circle at 34% 26%, #fff4d8, transparent 34%),
+        linear-gradient(135deg, var(--card-accent), var(--card-second));
+      box-shadow: 0 0 26px color-mix(in srgb, var(--card-accent) 38%, transparent);
+      overflow: hidden;
+    }
+
+    .author-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .author-name {
+      margin: 0;
+      color: #fff4df;
+      font-size: 20px;
+      line-height: 1.22;
+      font-weight: 920;
+    }
+
+    .author-years {
+      margin-top: 3px;
+      color: color-mix(in srgb, var(--card-accent) 68%, #fff);
+      font-size: 12px;
+      font-weight: 760;
+    }
+
+    .author-bio {
+      position: relative;
+      z-index: 1;
+      margin: 0;
+      color: #e7edf9;
+      font-size: 14px;
+      line-height: 1.75;
+    }
+
+    .author-note {
+      position: relative;
+      z-index: 1;
+      margin: 0;
+      color: rgba(247, 239, 226, .76);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .author-card b {
+      display: block;
+      margin-bottom: 3px;
+      color: color-mix(in srgb, var(--card-second) 64%, #fff);
+      font-size: 10px;
+      letter-spacing: .04em;
+    }
+
+    .hover-label {
+      position: fixed;
+      z-index: 18;
+      pointer-events: none;
+      width: 220px;
+      border: 1px solid rgba(255, 255, 255, .18);
+      border-radius: 8px;
+      background: rgba(8, 10, 22, .92);
+      backdrop-filter: blur(16px);
+      box-shadow: 0 18px 60px rgba(0, 0, 0, .44);
+      overflow: hidden;
+      transform: translate(18px, 18px);
+    }
+
+    .hover-label img {
+      width: 100%;
+      height: 122px;
+      display: block;
+      object-fit: cover;
+    }
+
+    .hover-label div {
+      padding: 9px;
+      font-size: 12px;
+      line-height: 1.45;
+      color: #e9eeff;
+    }
+
+    .hover-label b {
+      display: block;
+      color: var(--seal);
+      margin-bottom: 2px;
+    }
+
+    .field {
+      mix-blend-mode: screen;
+      filter: url(#softGlow);
+      cursor: pointer;
+    }
+
+    .field circle {
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: fieldPulse 6.5s ease-in-out infinite;
+    }
+
+    .field:nth-child(2n) circle { animation-duration: 7.8s; }
+    .field:nth-child(3n) circle { animation-duration: 8.6s; }
+
+    @keyframes fieldPulse {
+      0%, 100% { opacity: .5; transform: scale(.985); }
+      50% { opacity: .9; transform: scale(1.025); }
+    }
+
+    .emotion-label {
+      pointer-events: none;
+      fill: rgba(247, 239, 226, .92);
+      font-size: 14px;
+      font-weight: 850;
+      paint-order: stroke;
+      stroke: rgba(0, 0, 0, .56);
+      stroke-width: 4px;
+      stroke-linejoin: round;
+    }
+
+    .emotion-label .en {
+      fill: rgba(247, 239, 226, .58);
+      font-family: "Didot", "Bodoni 72", "Times New Roman", serif;
+      font-size: 8px;
+      font-weight: 760;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .axis-label {
+      fill: rgba(255, 227, 142, .95);
+      font-size: 13px;
+      font-weight: 880;
+      paint-order: stroke;
+      stroke: rgba(8, 8, 18, .76);
+      stroke-width: 4px;
+      stroke-linejoin: round;
+      pointer-events: none;
+    }
+
+    .axis-label .en {
+      fill: rgba(255, 227, 142, .62);
+      font-family: "Didot", "Bodoni 72", "Times New Roman", serif;
+      font-size: 8px;
+      font-weight: 760;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      stroke-width: 3px;
+    }
+
+    .art-node {
+      cursor: pointer;
+      transition: opacity .18s ease;
+    }
+
+    .art-node.dim {
+      opacity: .045;
+    }
+
+    .art-node .thumb {
+      transform-box: fill-box;
+      transform-origin: center;
+      transition: transform .22s cubic-bezier(.2, .9, .2, 1), filter .22s ease;
+      filter: drop-shadow(0 0 12px rgba(255,255,255,.16));
+    }
+
+    .art-node.pop .thumb {
+      transform: scale(1.2);
+      filter: drop-shadow(0 0 28px rgba(241,190,98,.54));
+    }
+
+    .art-node.pop .halo {
+      animation: nodePop .34s ease;
+    }
+
+    .art-node.selected .halo {
+      stroke-width: 2.8;
+      opacity: 1;
+    }
+
+    @keyframes nodePop {
+      0% { transform: scale(1); opacity: .72; }
+      55% { transform: scale(1.42); opacity: 1; }
+      100% { transform: scale(1); opacity: .86; }
+    }
+
+    .link-line {
+      pointer-events: none;
+      stroke-linecap: round;
+      stroke-dasharray: 5 8;
+      animation: linkFlow 1.4s linear infinite;
+    }
+
+    @keyframes linkFlow {
+      from { stroke-dashoffset: 0; }
+      to { stroke-dashoffset: -26; }
+    }
+
+    @media (max-width: 1080px) {
+      body { overflow: auto; }
+      .app {
+        min-height: 1180px;
+        height: auto;
+        overflow: hidden;
+      }
+      .chrome {
+        position: relative;
+        inset: auto;
+        z-index: 6;
+        display: grid;
+        grid-template-columns: 1fr;
+        padding: 16px;
+      }
+      .atlas {
+        height: 560px;
+        top: 280px;
+        bottom: auto;
+      }
+      .left,
+      .right {
+        width: 100%;
+        max-height: none;
+      }
+      .hud {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <canvas id="timeCanvas"></canvas>
+    <div class="atlas" id="atlas"></div>
+    <div class="chrome">
+      <aside class="panel left">
+        <div class="brand">
+          <div class="sigil"></div>
+          <div>
+            <h1>情绪美术馆</h1>
+            <div class="brand-en">Emotion Museum <span class="brand-signature">by AirLumiere</span></div>
+            <div class="subtitle">当你说不清心情，就让传世画作替你表达。</div>
+            <div class="subtitle-en">Let paintings speak the feelings you cannot name.</div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title"><span>星图规模</span><span>Index</span></div>
+          <div class="stats">
+            <div class="stat"><b id="artCount">19</b><span>在线作品</span></div>
+            <div class="stat"><b id="moodCount">12</b><span>情绪场</span></div>
+            <div class="stat"><b id="matchCount">19</b><span>当前可见</span></div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title"><span>操作</span><span>Ritual</span></div>
+          <div class="controls">
+            <button class="tool primary" id="allButton"><span>总览</span><small>Overview</small></button>
+            <button class="tool" id="routeButton"><span>情绪漫游</span><small>Emotion Tour</small></button>
+            <button class="tool" id="zoomInButton" aria-label="放大查看 Zoom in" title="放大查看 Zoom in"><span class="symbol">+</span><small>Zoom in</small></button>
+            <button class="tool" id="zoomOutButton" aria-label="缩小总览 Zoom out" title="缩小总览 Zoom out"><span class="symbol">-</span><small>Zoom out</small></button>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="quadrant">
+            <div class="section-title"><span>情绪罗盘</span><span>Compass</span></div>
+            <div class="compass-shell">
+              <svg class="compass" id="emotionCompass" viewBox="-132 -132 264 264" aria-label="情绪罗盘"></svg>
+            </div>
+            <p class="compass-note">选择心情</p>
+          </div>
+          <div class="status" id="loadStatus" aria-live="polite"></div>
+        </div>
+      </aside>
+
+      <div class="hud">
+        <div class="hud-card">
+          <b>Emotion Museum</b>
+          <span>滚轮/拖拽查看细节</span>
+          <span>作品围绕主情绪聚集</span>
+        </div>
+      </div>
+
+      <aside class="panel right" id="artPanel"></aside>
+    </div>
+    <div class="tour-stage" id="tourStage" aria-live="polite">
+      <div class="tour-title" id="tourTitle">
+        <b>情绪漫游</b>
+        <span>Emotion Tour</span>
+      </div>
+      <div class="tour-controls">
+        <button class="tour-action" id="tourPrevButton">上一个 / Prev</button>
+        <button class="tour-action primary" id="tourNextButton">下一个 / Next</button>
+        <button class="tour-action" id="tourExitButton">退出 / Exit</button>
+      </div>
+    </div>
+    <div class="hover-label" id="hoverLabel" hidden></div>
+    <div class="share-modal" id="shareModal" hidden>
+      <div class="share-backdrop" id="shareBackdrop"></div>
+      <section class="share-sheet" aria-label="分享卡预览">
+        <div class="share-topbar">
+          <b>情绪美术馆</b>
+          <span class="share-status" id="shareStatus">HTML 3:4 预览，可下载</span>
+          <button class="source-button" id="closeShareButton">关闭 / Close</button>
+          <select class="share-format" id="shareFormat" aria-label="分享卡下载格式">
+            <option value="png">PNG</option>
+            <option value="jpg">JPG</option>
+          </select>
+          <button class="source-button primary" id="downloadShareButton">下载图片 / Download Image</button>
+        </div>
+        <div class="share-stage">
+          <article class="share-card" id="shareCard"></article>
+          <article class="author-card" id="authorCard"></article>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+  <script src="vendor/html2canvas.min.js"></script>
+  <script src="art-nebula-assets/local-data.js"></script>
+  <script>
+    const EMOTIONS = [
+      { id: "calm", label: "平静", en: "Calm", color: "#6de6aa", x: 0, y: .92, radius: .31, spell: "心跳慢下来" },
+      { id: "tenderness", label: "安心", en: "Tender", color: "#f5b8a7", x: -.52, y: .72, radius: .3, spell: "被轻轻接住" },
+      { id: "joy", label: "喜悦", en: "Joy", color: "#ffb04f", x: .55, y: .7, radius: .31, spell: "光变得轻快" },
+      { id: "ecstasy", label: "兴奋", en: "Excitement", color: "#ff6a62", x: .92, y: .05, radius: .31, spell: "身体先一步亮起来" },
+      { id: "anger", label: "愤怒", en: "Anger", color: "#ff3b30", x: .92, y: -.58, radius: .3, spell: "火焰顶到喉咙" },
+      { id: "desire", label: "渴望", en: "Longing", color: "#ff5d8f", x: .56, y: -.18, radius: .31, spell: "想靠近一点" },
+      { id: "dread", label: "恐惧", en: "Dread", color: "#b25cff", x: .2, y: -.9, radius: .32, spell: "黑暗正在逼近" },
+      { id: "mystery", label: "不安", en: "Unease", color: "#a98bff", x: .04, y: -.34, radius: .33, spell: "答案还没出现" },
+      { id: "melancholy", label: "低落", en: "Melancholy", color: "#6f7dff", x: -.92, y: -.06, radius: .32, spell: "蓝色慢慢沉下去" },
+      { id: "solitude", label: "孤独", en: "Solitude", color: "#67dcff", x: -.66, y: -.55, radius: .33, spell: "世界安静下来" },
+      { id: "dream", label: "迷惘", en: "Bewilderment", color: "#f4c96b", x: -.55, y: .14, radius: .34, spell: "方向暂时失去轮廓" },
+      { id: "sacred", label: "敬畏", en: "Reverence", color: "#d8b47b", x: -.26, y: .42, radius: .31, spell: "被更大的东西照亮" },
+      { id: "awe", label: "惊奇", en: "Wonder", color: "#ffe38e", x: .26, y: .42, radius: .31, spell: "眼睛被新的事物点亮" }
+    ];
+
+    const TOUR_ROUTE_IDS = ["calm", "tenderness", "joy", "ecstasy", "anger", "desire", "dread", "mystery", "melancholy", "solitude", "dream", "sacred", "awe"];
+
+    const EMOTION_TOUR_COPY = {
+      calm: { line: "像一口缓慢的呼吸，水面把所有噪声收成柔光。", keywords: ["慢下来", "清澈", "留白"] },
+      tenderness: { line: "世界没有催促你，只是把肩膀轻轻放低。", keywords: ["被接住", "体温", "柔软"] },
+      joy: { line: "光线从画布边缘溢出来，心跳忽然变得轻快。", keywords: ["明亮", "跳跃", "花开"] },
+      ecstasy: { line: "身体先一步亮起来，像一束光忽然冲出胸口。", keywords: ["跃动", "加速", "发光"] },
+      anger: { line: "火焰顶到喉咙，所有沉默都开始有了形状。", keywords: ["灼热", "反抗", "爆裂"] },
+      desire: { line: "想靠近一点，再靠近一点，直到距离也发光。", keywords: ["靠近", "凝视", "牵引"] },
+      dread: { line: "黑暗不是突然降临，它先在边缘慢慢合拢。", keywords: ["压迫", "阴影", "预感"] },
+      mystery: { line: "答案没有出现，只有一扇半开的门在呼吸。", keywords: ["未明", "暗示", "门缝"] },
+      melancholy: { line: "蓝色慢慢沉下去，声音变轻，时间变厚。", keywords: ["下沉", "余温", "雨后"] },
+      solitude: { line: "世界安静下来，你终于听见自己内部的回声。", keywords: ["独处", "回声", "远方"] },
+      dream: { line: "方向暂时失去轮廓，像站在雾里等待一个答案。", keywords: ["迷路", "雾", "寻找"] },
+      sacred: { line: "被更大的东西照亮，身体安静，目光向上。", keywords: ["仪式", "光晕", "仰望"] },
+      awe: { line: "眼睛被新的事物点亮，世界忽然露出另一层光。", keywords: ["新鲜", "闪光", "发现"] }
+    };
+
+    const BASE_ARTWORKS = [
+      { id:"commons-starry-night", title:"The Starry Night", artist:"Vincent van Gogh", date:"1889", imageUrl:"https://upload.wikimedia.org/wikipedia/commons/thumb/e/ea/Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg/1280px-Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg", sourceUrl:"https://commons.wikimedia.org/wiki/File:Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg", movement:"后印象派", source:"Wikimedia Commons", fame:10, moods:[["dream",.52],["mystery",.3],["solitude",.18]], atmosphere:"夜空像被某种力量卷起，村庄还在沉睡，星光却已经从现实里溢出来。", story:"梵高在圣雷米时期把窗外的夜色转化成内心的宇宙：它不是冷静的风景，而是一种正在旋转的精神天气。", guide:"先看天空的旋涡，再看柏树像火焰一样向上伸展，最后回到小镇的静默。动与静在同一张画里互相照亮。" },
+      { id:"met-436528", title:"Irises", artist:"Vincent van Gogh", date:"1890", imageUrl:"https://images.metmuseum.org/CRDImages/ep/web-large/DP346474.jpg", sourceUrl:"https://www.metmuseum.org/art/collection/search/436528", movement:"后印象派", source:"The Met", fame:9, moods:[["calm",.46],["tenderness",.32],["joy",.22]] },
+      { id:"met-436524", title:"Sunflowers", artist:"Vincent van Gogh", date:"1887", imageUrl:"https://images.metmuseum.org/CRDImages/ep/web-large/DP-41223-001.jpg", sourceUrl:"https://www.metmuseum.org/art/collection/search/436524", movement:"后印象派", source:"The Met", fame:9, moods:[["joy",.46],["ecstasy",.34],["tenderness",.2]] },
+      { id:"met-436533", title:"Shoes", artist:"Vincent van Gogh", date:"1888", imageUrl:"https://images.metmuseum.org/CRDImages/ep/web-large/DT1947.jpg", sourceUrl:"https://www.metmuseum.org/art/collection/search/436533", movement:"后印象派", source:"The Met", fame:8, moods:[["solitude",.46],["melancholy",.34],["mystery",.2]] },
+      { id:"met-436529", title:"L'Arlesienne: Madame Ginoux", artist:"Vincent van Gogh", date:"1888-89", imageUrl:"https://images.metmuseum.org/CRDImages/ep/web-large/DT1396.jpg", sourceUrl:"https://www.metmuseum.org/art/collection/search/436529", movement:"后印象派", source:"The Met", fame:8, moods:[["mystery",.42],["solitude",.32],["desire",.26]] },
+      { id:"met-436532", title:"Self-Portrait with a Straw Hat", artist:"Vincent van Gogh", date:"1887", imageUrl:"https://images.metmuseum.org/CRDImages/ep/web-large/DT1502_cropped2.jpg", sourceUrl:"https://www.metmuseum.org/art/collection/search/436532", movement:"后印象派", source:"The Met", fame:9, moods:[["solitude",.44],["mystery",.32],["dread",.24]] },
+      { id:"met-459123", title:"Madame Roulin and Her Baby", artist:"Vincent van Gogh", date:"1888", imageUrl:"https://images.metmuseum.org/CRDImages/rl/web-large/DT3154.jpg", sourceUrl:"https://www.metmuseum.org/art/collection/search/459123", movement:"后印象派", source:"The Met", fame:7, moods:[["tenderness",.5],["calm",.32],["sacred",.18]] },
+      { id:"met-436965", title:"The Monet Family in Their Garden", artist:"Edouard Manet", date:"1874", imageUrl:"https://images.metmuseum.org/CRDImages/ep/web-large/DP-25465-001.jpg", sourceUrl:"https://www.metmuseum.org/art/collection/search/436965", movement:"印象派", source:"The Met", fame:8, moods:[["joy",.4],["tenderness",.34],["calm",.26]] },
+      { id:"met-436121", title:"A Woman Seated beside Flowers", artist:"Edgar Degas", date:"1865", imageUrl:"https://images.metmuseum.org/CRDImages/ep/web-large/DP-25460-001.jpg", sourceUrl:"https://www.metmuseum.org/art/collection/search/436121", movement:"印象派", source:"The Met", fame:8, moods:[["desire",.4],["mystery",.34],["melancholy",.26]] },
+      { id:"met-438011", title:"Eugene Murer", artist:"Auguste Renoir", date:"1877", imageUrl:"https://images.metmuseum.org/CRDImages/ep/web-large/DT1882.jpg", sourceUrl:"https://www.metmuseum.org/art/collection/search/438011", movement:"印象派", source:"The Met", fame:7, moods:[["mystery",.38],["solitude",.34],["calm",.28]] },
+      { id:"met-437438", title:"Young Girl in a Pink-and-Black Hat", artist:"Auguste Renoir", date:"ca. 1891", imageUrl:"https://images.metmuseum.org/CRDImages/ep/web-large/DP-33709-001.jpg", sourceUrl:"https://www.metmuseum.org/art/collection/search/437438", movement:"印象派", source:"The Met", fame:7, moods:[["desire",.42],["tenderness",.34],["mystery",.24]] },
+      { id:"met-436105", title:"The Death of Socrates", artist:"Jacques Louis David", date:"1787", imageUrl:"https://images.metmuseum.org/CRDImages/ep/web-large/DP-13139-001.jpg", sourceUrl:"https://www.metmuseum.org/art/collection/search/436105", movement:"新古典主义", source:"The Met", fame:10, moods:[["sacred",.44],["awe",.34],["dread",.22]], atmosphere:"人物被安排得像一场仪式，死亡没有被画成崩塌，而是被推到一种庄严的亮处。", story:"这类新古典主义叙事把道德选择、身体姿态和建筑秩序绑在一起，让画面像一座可阅读的舞台。", guide:"先看苏格拉底伸出的手，再看周围人的身体方向。最强的情绪不在哭喊，而在秩序和克制之中。" },
+      { id:"met-436024", title:"Woman in a Riding Habit", artist:"Gustave Courbet", date:"ca. 1855-59", imageUrl:"https://images.metmuseum.org/CRDImages/ep/web-large/DT2147.jpg", sourceUrl:"https://www.metmuseum.org/art/collection/search/436024", movement:"现实主义", source:"The Met", fame:7, moods:[["solitude",.36],["mystery",.34],["desire",.3]] },
+      { id:"met-438816", title:"The Forest in Winter at Sunset", artist:"Theodore Rousseau", date:"ca. 1846-67", imageUrl:"https://images.metmuseum.org/CRDImages/ep/web-large/DP-31520-001.jpg", sourceUrl:"https://www.metmuseum.org/art/collection/search/438816", movement:"风景", source:"The Met", fame:7, moods:[["solitude",.42],["melancholy",.36],["calm",.22]] },
+      { id:"met-436947", title:"Boating", artist:"Edouard Manet", date:"1874", imageUrl:"https://images.metmuseum.org/CRDImages/ep/web-large/DP-25466-001.jpg", sourceUrl:"https://www.metmuseum.org/art/collection/search/436947", movement:"现代生活", source:"The Met", fame:8, moods:[["calm",.42],["joy",.34],["tenderness",.24]] },
+      { id:"met-438002", title:"Madame Manet at Bellevue", artist:"Edouard Manet", date:"1880", imageUrl:"https://images.metmuseum.org/CRDImages/ep/web-large/DT4224.jpg", sourceUrl:"https://www.metmuseum.org/art/collection/search/438002", movement:"现代生活", source:"The Met", fame:7, moods:[["calm",.38],["tenderness",.34],["melancholy",.28]] },
+      { id:"met-459055", title:"The Annunciation", artist:"Hans Memling", date:"1480-89", imageUrl:"https://images.metmuseum.org/CRDImages/rl/web-large/DP-40424-001.jpg", sourceUrl:"https://www.metmuseum.org/art/collection/search/459055", movement:"北方文艺复兴", source:"The Met", fame:8, moods:[["sacred",.44],["mystery",.34],["awe",.22]] },
+      { id:"met-437056", title:"Tommaso and Maria Portinari", artist:"Hans Memling", date:"ca. 1470", imageUrl:"https://images.metmuseum.org/CRDImages/ep/web-large/DP-44362-005.jpg", sourceUrl:"https://www.metmuseum.org/art/collection/search/437056", movement:"北方文艺复兴", source:"The Met", fame:7, moods:[["sacred",.38],["solitude",.32],["mystery",.3]] },
+      { id:"met-436268", title:"Putti with a Medallion", artist:"Charles Dominique Joseph Eisen", date:"18th century", imageUrl:"https://images.metmuseum.org/CRDImages/ep/web-large/DP236827.jpg", sourceUrl:"https://www.metmuseum.org/art/collection/search/436268", movement:"洛可可", source:"The Met", fame:6, moods:[["joy",.42],["ecstasy",.32],["desire",.26]] }
+    ];
+
+    const AIC_QUERIES = [
+      { q: "Monet", moods: ["calm", "dream", "tenderness"], limit: 9 },
+      { q: "Van Gogh", moods: ["dream", "solitude", "mystery"], limit: 9 },
+      { q: "Renoir", moods: ["joy", "tenderness", "desire"], limit: 8 },
+      { q: "Degas", moods: ["mystery", "desire", "melancholy"], limit: 8 },
+      { q: "Cassatt", moods: ["tenderness", "calm", "joy"], limit: 8 },
+      { q: "Cezanne", moods: ["calm", "mystery", "dream"], limit: 8 },
+      { q: "Rembrandt", moods: ["solitude", "sacred", "mystery"], limit: 8 },
+      { q: "Hokusai", moods: ["awe", "dread", "calm"], limit: 8 },
+      { q: "O Keeffe", moods: ["desire", "calm", "mystery"], limit: 7 },
+      { q: "Matisse", moods: ["joy", "ecstasy", "desire"], limit: 7 },
+      { q: "Picasso", moods: ["dread", "mystery", "desire"], limit: 7 },
+      { q: "Goya", moods: ["dread", "mystery", "melancholy"], limit: 7 },
+      { q: "Sargent", moods: ["mystery", "desire", "tenderness"], limit: 7 },
+      { q: "Homer", moods: ["awe", "solitude", "dread"], limit: 7 },
+      { q: "Turner", moods: ["awe", "dream", "dread"], limit: 7 },
+      { q: "Klimt", moods: ["desire", "awe", "dream"], limit: 6 },
+      { q: "landscape", moods: ["calm", "awe", "solitude"], limit: 8 },
+      { q: "portrait", moods: ["tenderness", "mystery", "solitude"], limit: 8 }
+    ];
+
+    const emotionMap = Object.fromEntries(EMOTIONS.map(d => [d.id, d]));
+    let artworks = BASE_ARTWORKS.map(normalizeArtwork);
+    let selected = artworks[0];
+    let activeEmotion = null;
+    let width = window.innerWidth;
+    let height = window.innerHeight;
+    let graph = {};
+    let svg;
+    let viewport;
+    let zoomBehavior;
+    let layers = {};
+    let nodeSelection;
+    let routeTimer = null;
+    let routeIndex = 0;
+    let tourMode = false;
+    let driftTimer = null;
+    let localImageMap = {};
+    let exportImageRequests = {};
+    let focusTransition = { from: null, to: null, start: 0, duration: 760 };
+
+    const atlas = document.getElementById("atlas");
+    const hoverLabel = document.getElementById("hoverLabel");
+    const loadStatus = document.getElementById("loadStatus");
+    const shareModal = document.getElementById("shareModal");
+    const shareCard = document.getElementById("shareCard");
+    const authorCard = document.getElementById("authorCard");
+    const shareStatus = document.getElementById("shareStatus");
+    const shareFormat = document.getElementById("shareFormat");
+    const routeButton = document.getElementById("routeButton");
+    const tourTitle = document.getElementById("tourTitle");
+
+    init();
+
+    async function init() {
+      renderCompass();
+      await loadLocalManifest();
+      artworks = applyCuratedMoods(applyLocalAssets(artworks));
+      selected = artworks[0];
+      renderPanel(selected);
+      renderAtlas();
+      animateTimeCanvas();
+      document.getElementById("allButton").addEventListener("click", () => {
+        setActiveEmotion(null);
+        stopRoute(true);
+        updateCompass();
+        updateVisualState();
+        resetZoom();
+      });
+      routeButton.addEventListener("click", playRoute);
+      document.getElementById("zoomInButton").addEventListener("click", () => zoomBy(1.35));
+      document.getElementById("zoomOutButton").addEventListener("click", () => zoomBy(.74));
+      document.getElementById("tourPrevButton").addEventListener("click", () => advanceTour(-1, true));
+      document.getElementById("tourNextButton").addEventListener("click", () => advanceTour(1, true));
+      document.getElementById("tourExitButton").addEventListener("click", () => stopRoute(true));
+      document.getElementById("closeShareButton").addEventListener("click", closeShareCard);
+      document.getElementById("shareBackdrop").addEventListener("click", closeShareCard);
+      document.getElementById("downloadShareButton").addEventListener("click", downloadShareCard);
+      atlas.addEventListener("click", event => {
+        if (!activeEmotion) return;
+        const target = event.target;
+        if (target.closest && target.closest(".art-node, .field")) return;
+        if (target.closest && target.closest("#atlas svg")) clearEmotionFocus();
+      }, true);
+      window.addEventListener("resize", () => {
+        width = window.innerWidth;
+        height = window.innerHeight;
+        renderAtlas();
+        fitPanelArtwork();
+      });
+      window.addEventListener("keydown", event => {
+        if (!tourMode) return;
+        if (event.key === "Escape") {
+          event.preventDefault();
+          stopRoute(true);
+          return;
+        }
+        if (event.key === "ArrowRight") {
+          event.preventDefault();
+          advanceTour(1, true);
+        }
+        if (event.key === "ArrowLeft") {
+          event.preventDefault();
+          advanceTour(-1, true);
+        }
+      });
+      loadLocalExpansion();
+    }
+
+    async function loadLocalManifest() {
+      try {
+        const manifest = await loadLocalData("art-nebula-assets/manifest.json", window.ART_NEBULA_LOCAL_MANIFEST);
+        localImageMap = manifest.images || {};
+      } catch (error) {
+        localImageMap = {};
+      }
+    }
+
+    function applyLocalAssets(list) {
+      return list.map(artwork => {
+        const cached = localImageMap[artwork.id];
+        if (!cached || !cached.localUrl) return artwork;
+        return {
+          ...artwork,
+          remoteUrl: artwork.remoteUrl || artwork.imageUrl,
+          imageUrl: cached.localUrl,
+          thumbUrl: cached.thumbUrl || artwork.thumbUrl || cached.localUrl,
+          thumbWidth: cached.thumbWidth || artwork.thumbWidth,
+          thumbHeight: cached.thumbHeight || artwork.thumbHeight,
+          width: cached.width || artwork.width,
+          height: cached.height || artwork.height,
+          orientation: cached.orientation || artwork.orientation
+        };
+      });
+    }
+
+    async function loadLocalExpansion() {
+      try {
+        loadStatus.textContent = "";
+        const data = await loadLocalData("art-nebula-assets/met-expansion.json", window.ART_NEBULA_LOCAL_EXPANSION);
+        const existing = new Set(artworks.map(d => d.id));
+        const loaded = (data.artworks || [])
+          .filter(artwork => artwork && artwork.imageUrl && !existing.has(artwork.id))
+          .map(normalizeArtwork);
+        artworks = applyCuratedMoods(applyLocalAssets([...artworks, ...loaded]).slice(0, 136));
+        if (!artworks.find(art => art.id === selected.id)) selected = artworks[0];
+        selected = artworks.find(art => art.id === selected.id) || artworks[0];
+        renderPanel(selected);
+        loadStatus.textContent = "";
+        renderAtlas();
+      } catch (error) {
+        loadStatus.textContent = "";
+      }
+    }
+
+    function applyCuratedMoods(list) {
+      return list.map(artwork => normalizeArtwork({
+        ...artwork,
+        moods: curatedMoodIds(artwork).map((id, index) => ({ id, weight: [0.5, 0.3, 0.2][index] }))
+      }));
+    }
+
+    const CURATED_MOOD_OVERRIDES = {
+      "commons-starry-night": ["dream", "awe", "solitude"],
+      "met-436528": ["calm", "tenderness", "joy"],
+      "met-436524": ["joy", "ecstasy", "tenderness"],
+      "met-436533": ["solitude", "melancholy", "calm"],
+      "met-436529": ["mystery", "solitude", "desire"],
+      "met-436532": ["solitude", "mystery", "desire"],
+      "met-459123": ["tenderness", "calm", "sacred"],
+      "met-436965": ["joy", "tenderness", "calm"],
+      "met-436121": ["mystery", "desire", "melancholy"],
+      "met-438011": ["mystery", "solitude", "calm"],
+      "met-437438": ["tenderness", "mystery", "calm"],
+      "met-436105": ["calm", "sacred", "melancholy"],
+      "met-459055": ["sacred", "mystery", "awe"],
+      "metx-435882": ["calm", "tenderness", "awe"],
+      "metx-437317": ["calm", "tenderness", "awe"],
+      "metx-437432": ["mystery", "desire", "solitude"],
+      "metx-438014": ["tenderness", "joy", "calm"],
+      "metx-437428": ["calm", "tenderness", "awe"],
+      "metx-435630": ["mystery", "solitude", "calm"],
+      "metx-435649": ["anger", "awe", "desire"],
+      "metx-435619": ["anger", "dread", "melancholy"],
+      "metx-435621": ["sacred", "awe", "anger"],
+      "metx-435678": ["dread", "mystery", "anger"],
+      "metx-435680": ["anger", "awe", "sacred"],
+      "metx-435663": ["calm", "awe", "tenderness"],
+      "metx-435670": ["desire", "mystery", "tenderness"],
+      "metx-436531": ["tenderness", "calm", "solitude"],
+      "metx-459110": ["desire", "tenderness", "mystery"],
+      "metx-437430": ["desire", "calm", "mystery"],
+      "metx-438013": ["desire", "mystery", "tenderness"],
+      "metx-435622": ["desire", "mystery", "awe"],
+      "commons-the-scream": ["dread", "mystery", "solitude"],
+      "commons-third-may-1808": ["dread", "anger", "melancholy"],
+      "commons-nightmare": ["dread", "dream", "mystery"],
+      "commons-liberty-leading": ["anger", "ecstasy", "sacred"],
+      "commons-saturn-devouring": ["dread", "anger", "mystery"],
+      "commons-raft-medusa": ["dread", "melancholy", "anger"],
+      "commons-judith-holofernes": ["anger", "dread", "awe"],
+      "commons-dante-virgil-hell": ["dread", "anger", "awe"],
+      "commons-moulin-galette": ["joy", "ecstasy", "tenderness"],
+      "commons-fragonard-swing": ["joy", "desire", "ecstasy"],
+      "commons-primavera": ["joy", "awe", "desire"],
+      "commons-birth-venus": ["joy", "awe", "desire"],
+      "commons-sleep-reason": ["dream", "dread", "mystery"],
+      "commons-redon-cyclops": ["dream", "mystery", "desire"],
+      "commons-isle-dead": ["dream", "solitude", "dread"],
+      "commons-wanderer-fog": ["dream", "awe", "solitude"],
+      "commons-ophelia": ["dream", "melancholy", "calm"],
+      "commons-second-may-1808": ["anger", "dread", "ecstasy"],
+      "commons-massacre-innocents": ["anger", "dread", "melancholy"],
+      "commons-oath-horatii": ["anger", "sacred", "awe"],
+      "commons-death-sardanapalus": ["anger", "dread", "desire"],
+      "commons-combat-giaour-hassan": ["anger", "ecstasy", "dread"],
+      "commons-monk-sea": ["dream", "solitude", "mystery"],
+      "commons-melencolia": ["dream", "melancholy", "mystery"],
+      "commons-ancient-days": ["dream", "sacred", "awe"],
+      "commons-jacobs-dream": ["dream", "sacred", "awe"]
+    };
+
+    function curatedMoodIds(artwork) {
+      if (CURATED_MOOD_OVERRIDES[artwork.id]) return CURATED_MOOD_OVERRIDES[artwork.id];
+      const title = `${artwork.title || ""} ${displayTitle(artwork)}`.toLowerCase();
+      const artist = String(artwork.artist || "").toLowerCase();
+      const movement = String(artwork.movement || "").toLowerCase();
+
+      if (/scream|nightmare|saturn|hell|medusa|beheading|holofernes|third of may|massacre|\bwars?\b/.test(title)) return ["dread", "anger", "mystery"];
+      if (/liberty leading|revolution|uprising|battle/.test(title)) return ["anger", "ecstasy", "sacred"];
+      if (/judith|betrayal|striking the rock|joan of arc|temptation/.test(title)) return ["anger", "dread", "awe"];
+      if (/lamentation|death|socrates|circumcision/.test(title)) return ["melancholy", "dread", "sacred"];
+      if (/madonna|child|baby|mother|圣母|圣婴|鲁兰夫人/.test(title)) return ["tenderness", "sacred", "calm"];
+      if (/angel|annunciation|assumption|trinity|apostles|saint|saints|christ|zacharias|nicholas|dominic|aquinas|altar|圣|天使|三位一体|祭坛/.test(title)) return ["sacred", "awe", "calm"];
+      if (/dancer|dance|dancing|ballet|piano|music|舞|钢琴/.test(title)) return ["joy", "ecstasy", "desire"];
+      if (/nude|cupid|angelica|medoro|diana|cavalier|seashore|bathing|裸|丘比特|沐浴/.test(title)) return ["desire", "dream", "mystery"];
+      if (/portrait|self-portrait|肖像|小姐|夫人|男子|女子|青年|少女|prince|chancellor|abbot/.test(title)) return ["mystery", "solitude", "calm"];
+      if (/flower|flowers|iris|irises|sunflowers|oleanders|chrysanthemums|orchard|blossoms|vase|花|鸢尾|向日葵|果园|花瓶/.test(title)) return ["calm", "joy", "tenderness"];
+      if (/still life|apples|peaches|grapes|lobster|fruit|静物|苹果|葡萄|水果|龙虾/.test(title)) return ["calm", "tenderness", "awe"];
+      if (/night|moon|dream|asylum|corridor|starry|星夜|夜|疗养院/.test(title)) return ["dream", "solitude", "mystery"];
+      if (/harbor|garden|landscape|field|wheat|cypresses|road|forest|winter|sunset|ravine|river|water|boating|skating|sea|cliff|port|tree|olive|haystacks|vaprio|pirna|aigues-mortes|风景|花园|海|港|森林|麦田|橄榄|峡谷|滑冰/.test(title)) return ["calm", "awe", "solitude"];
+      if (/coin|nummus|room|project|design|medallion|putti|硬币|房间设计|圆章/.test(title)) return ["mystery", "calm", "awe"];
+      if (/van gogh/.test(artist)) return ["solitude", "mystery", "desire"];
+      if (/renoir/.test(artist)) return ["tenderness", "desire", "calm"];
+      if (/degas/.test(artist)) return ["mystery", "desire", "melancholy"];
+      if (/monet|pissarro|caillebotte|cezanne|cézanne/.test(artist)) return ["calm", "dream", "tenderness"];
+      if (/paintings|drawings/.test(movement)) return ["mystery", "calm", "solitude"];
+      return ["mystery", "calm", "solitude"];
+    }
+
+    async function loadLocalData(url, fallback) {
+      if (fallback) return fallback;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`${url} ${response.status}`);
+      return response.json();
+    }
+
+    function renderCompass() {
+      const compass = d3.select("#emotionCompass");
+      compass.html("");
+      const defs = compass.append("defs");
+      const gradient = defs.append("radialGradient")
+        .attr("id", "compassGlow")
+        .attr("cx", "50%")
+        .attr("cy", "50%")
+        .attr("r", "58%");
+      gradient.append("stop").attr("offset", "0%").attr("stop-color", "rgba(241,190,98,.24)");
+      gradient.append("stop").attr("offset", "100%").attr("stop-color", "rgba(241,190,98,0)");
+
+      compass.append("circle").attr("r", 104).attr("fill", "url(#compassGlow)").attr("stroke", "rgba(241,190,98,.32)");
+      [76, 48, 22].forEach(radius => compass.append("circle").attr("class", "compass-orbit").attr("r", radius));
+      [
+        [-112, 0, 112, 0],
+        [0, -112, 0, 112],
+        [-79, -79, 79, 79],
+        [-79, 79, 79, -79]
+      ].forEach(line => compass.append("line").attr("class", "compass-axis").attr("x1", line[0]).attr("y1", line[1]).attr("x2", line[2]).attr("y2", line[3]));
+      compass.append("circle").attr("class", "compass-core").attr("r", 17);
+      compass.append("text").attr("class", "cardinal").attr("text-anchor", "middle").attr("y", 4).text("心象");
+
+      const group = compass.selectAll("g.compass-emotion")
+        .data(EMOTIONS)
+        .join("g")
+        .attr("class", "compass-emotion")
+        .attr("tabindex", 0)
+        .attr("role", "button")
+        .attr("aria-label", d => `选择${d.label}`)
+        .style("--emotion-color", d => d.color)
+        .on("click", (event, emotion) => toggleEmotion(emotion.id))
+        .on("keydown", (event, emotion) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            toggleEmotion(emotion.id);
+          }
+        });
+
+      group.append("line")
+        .attr("class", "compass-ray")
+        .attr("x1", 0)
+        .attr("y1", 0)
+        .attr("x2", d => d.x * 84)
+        .attr("y2", d => -d.y * 84);
+
+      group.append("circle")
+        .attr("class", "compass-hit")
+        .attr("cx", d => d.x * 84)
+        .attr("cy", d => -d.y * 84)
+        .attr("r", 13);
+
+      group.append("circle")
+        .attr("class", "compass-point")
+        .attr("cx", d => d.x * 84)
+        .attr("cy", d => -d.y * 84)
+        .attr("r", 4.6);
+
+      group.append("text")
+        .attr("text-anchor", d => d.x < -.2 ? "end" : d.x > .2 ? "start" : "middle")
+        .attr("x", d => d.x * 101)
+        .attr("y", d => -d.y * 101 + 4)
+        .each(function(d) {
+          const text = d3.select(this);
+          text.append("tspan").attr("x", d.x * 101).text(d.label);
+          text.append("tspan").attr("class", "en").attr("x", d.x * 101).attr("dy", 9).text(d.en);
+        });
+
+      updateCompass();
+    }
+
+    function toggleEmotion(emotionId) {
+      setActiveEmotion(activeEmotion === emotionId ? null : emotionId);
+      stopRoute(true);
+      updateCompass();
+      updateVisualState();
+      if (activeEmotion) {
+        zoomToEmotion(activeEmotion);
+      } else {
+        resetZoom();
+      }
+    }
+
+    function clearEmotionFocus() {
+      if (!activeEmotion) return;
+      setActiveEmotion(null);
+      stopRoute(true);
+      updateCompass();
+      updateVisualState();
+      resetZoom();
+    }
+
+    function setActiveEmotion(emotionId) {
+      if (activeEmotion === emotionId) return;
+      focusTransition = {
+        from: activeEmotion,
+        to: emotionId,
+        start: performance.now(),
+        duration: 780
+      };
+      activeEmotion = emotionId;
+    }
+
+    function updateCompass() {
+      document.querySelectorAll(".compass-emotion").forEach(group => {
+        const datum = d3.select(group).datum();
+        group.classList.toggle("active", datum && datum.id === activeEmotion);
+      });
+    }
+
+    function renderAtlas() {
+      atlas.innerHTML = "";
+      graph = graphMetrics();
+      svg = d3.select(atlas).append("svg")
+        .attr("viewBox", `${-width / 2} ${-height / 2} ${width} ${height}`)
+        .attr("width", width)
+        .attr("height", height)
+        .style("cursor", "grab");
+
+      const defs = svg.append("defs");
+      defs.append("filter")
+        .attr("id", "softGlow")
+        .attr("x", "-60%")
+        .attr("y", "-60%")
+        .attr("width", "220%")
+        .attr("height", "220%")
+        .html(`
+          <feGaussianBlur stdDeviation="7" result="blur"></feGaussianBlur>
+          <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .75 0" result="glow"></feColorMatrix>
+          <feMerge><feMergeNode in="glow"></feMergeNode><feMergeNode in="SourceGraphic"></feMergeNode></feMerge>
+        `);
+      defs.append("marker")
+        .attr("id", "axisArrow")
+        .attr("viewBox", "0 -5 10 10")
+        .attr("refX", 8)
+        .attr("refY", 0)
+        .attr("markerWidth", 8)
+        .attr("markerHeight", 8)
+        .attr("orient", "auto-start-reverse")
+        .append("path")
+        .attr("d", "M0,-5L10,0L0,5")
+        .attr("fill", "rgba(255, 227, 142, .92)");
+      const rayGradient = defs.append("radialGradient")
+        .attr("id", "gravityRayGlow")
+        .attr("cx", "50%")
+        .attr("cy", "50%")
+        .attr("r", "72%");
+      rayGradient.append("stop").attr("offset", "0%").attr("stop-color", "rgba(255,255,255,.95)");
+      rayGradient.append("stop").attr("offset", "36%").attr("stop-color", "rgba(255,227,142,.44)");
+      rayGradient.append("stop").attr("offset", "100%").attr("stop-color", "rgba(255,227,142,0)");
+
+      defs.selectAll("clipPath")
+        .data(artworks)
+        .join("clipPath")
+          .attr("id", d => `clip-${safeId(d.id)}`)
+        .append("circle")
+          .attr("r", d => nodeRadius(d) * .86);
+
+      viewport = svg.append("g").attr("class", "zoom-viewport");
+      layers.axis = viewport.append("g").attr("class", "axis-layer");
+      layers.gravity = viewport.append("g").attr("class", "gravity-layer");
+      layers.fields = viewport.append("g").attr("class", "field-layer");
+      layers.links = viewport.append("g").attr("class", "link-layer");
+      layers.nodes = viewport.append("g").attr("class", "node-layer");
+      zoomBehavior = d3.zoom()
+        .scaleExtent([.62, 4.8])
+        .on("start", () => svg.style("cursor", "grabbing"))
+        .on("zoom", event => viewport.attr("transform", event.transform))
+        .on("end", () => svg.style("cursor", "grab"));
+      svg.call(zoomBehavior);
+      svg.on("click", event => {
+        if (!activeEmotion) return;
+        const target = event.target;
+        if (target.closest && target.closest(".art-node, .field")) return;
+        clearEmotionFocus();
+      });
+      assignClusterSlots();
+      drawAxes();
+      drawFields();
+      drawNodes();
+      drawSelectionLinks();
+      updateVisualState();
+    }
+
+    function zoomBy(factor) {
+      if (!svg || !zoomBehavior) return;
+      svg.transition()
+        .duration(360)
+        .ease(d3.easeCubicOut)
+        .call(zoomBehavior.scaleBy, factor);
+    }
+
+    function resetZoom() {
+      if (!svg || !zoomBehavior) return;
+      svg.transition()
+        .duration(520)
+        .ease(d3.easeCubicOut)
+        .call(zoomBehavior.transform, d3.zoomIdentity);
+    }
+
+    function zoomToEmotion(emotionId) {
+      if (!svg || !zoomBehavior || !emotionId) return;
+      const emotion = emotionMap[emotionId];
+      const point = emotionPoint(emotion);
+      const radius = focusedFieldRadius(emotion);
+      const scale = Math.max(1.05, Math.min(1.72, Math.min(width * .34 / radius, height * .34 / radius)));
+      const targetX = tourMode ? tourFocusOffsetX() : 0;
+      const transform = d3.zoomIdentity
+        .translate(targetX - point.x * scale, -point.y * scale)
+        .scale(scale);
+      svg.transition()
+        .duration(620)
+        .ease(d3.easeCubicOut)
+        .call(zoomBehavior.transform, transform);
+    }
+
+    function drawAxes() {
+      const axis = layers.axis;
+      const axisRx = graph.rx * 1.08;
+      const axisRy = graph.ry * 1.08;
+      const axisColor = "rgba(255, 227, 142, .68)";
+      const axisGlow = "rgba(255, 190, 98, .18)";
+      axis.append("line")
+        .attr("x1", graph.cx - axisRx)
+        .attr("x2", graph.cx + axisRx)
+        .attr("y1", graph.cy)
+        .attr("y2", graph.cy)
+        .attr("stroke", axisGlow)
+        .attr("stroke-width", 9)
+        .attr("stroke-linecap", "round");
+      axis.append("line")
+        .attr("x1", graph.cx - axisRx)
+        .attr("x2", graph.cx + axisRx)
+        .attr("y1", graph.cy)
+        .attr("y2", graph.cy)
+        .attr("stroke", axisColor)
+        .attr("stroke-width", 2)
+        .attr("stroke-linecap", "round")
+        .attr("stroke-dasharray", "10 12")
+        .attr("marker-start", "url(#axisArrow)")
+        .attr("marker-end", "url(#axisArrow)");
+      axis.append("line")
+        .attr("x1", graph.cx)
+        .attr("x2", graph.cx)
+        .attr("y1", graph.cy - axisRy)
+        .attr("y2", graph.cy + axisRy)
+        .attr("stroke", axisGlow)
+        .attr("stroke-width", 9)
+        .attr("stroke-linecap", "round");
+      axis.append("line")
+        .attr("x1", graph.cx)
+        .attr("x2", graph.cx)
+        .attr("y1", graph.cy - axisRy)
+        .attr("y2", graph.cy + axisRy)
+        .attr("stroke", axisColor)
+        .attr("stroke-width", 2)
+        .attr("stroke-linecap", "round")
+        .attr("stroke-dasharray", "10 12")
+        .attr("marker-start", "url(#axisArrow)")
+        .attr("marker-end", "url(#axisArrow)");
+      const labels = [
+        { text: "内收", en: "Inward", x: graph.cx - axisRx - 14, y: graph.cy - 12, anchor: "end" },
+        { text: "外放", en: "Outward", x: graph.cx + axisRx + 14, y: graph.cy - 12, anchor: "start" },
+        { text: "安定", en: "Settled", x: graph.cx + 15, y: graph.cy - axisRy - 12, anchor: "start" },
+        { text: "紧张", en: "Tense", x: graph.cx + 15, y: graph.cy + axisRy + 24, anchor: "start" }
+      ];
+      axis.selectAll("text")
+        .data(labels)
+        .join("text")
+        .attr("class", "axis-label")
+        .attr("x", d => d.x)
+        .attr("y", d => d.y)
+        .attr("text-anchor", d => d.anchor)
+        .each(function(d) {
+          const text = d3.select(this);
+          text.append("tspan").attr("x", d.x).text(d.text);
+          text.append("tspan").attr("class", "en").attr("x", d.x).attr("dy", 10).text(d.en);
+        });
+    }
+
+    function drawFields() {
+      const field = layers.fields.selectAll("g.field")
+        .data(EMOTIONS)
+        .join("g")
+        .attr("class", "field")
+        .attr("transform", d => `translate(${emotionPoint(d).x},${emotionPoint(d).y})`)
+        .on("click", (event, d) => {
+          event.stopPropagation();
+          if (tourMode) stopRoute(true);
+          setActiveEmotion(activeEmotion === d.id ? null : d.id);
+          updateCompass();
+          updateVisualState();
+          if (activeEmotion) {
+            zoomToEmotion(activeEmotion);
+          } else {
+            resetZoom();
+          }
+        });
+
+      field.append("circle")
+        .attr("class", "field-orb")
+        .attr("r", 0)
+        .attr("fill", d => hexToRgba(d.color, .12))
+        .attr("stroke", d => hexToRgba(d.color, .5))
+        .attr("stroke-width", 1.3)
+        .transition("grow")
+        .duration(980)
+        .delay((d, index) => index * 42)
+        .ease(d3.easeCubicOut)
+        .attr("r", d => fieldDisplayRadius(d));
+
+      field.append("circle")
+        .attr("class", "field-core")
+        .attr("r", 0)
+        .attr("fill", "none")
+        .attr("stroke", d => hexToRgba(d.color, .46))
+        .attr("stroke-width", 1)
+        .attr("stroke-dasharray", "3 8")
+        .transition("grow")
+        .duration(980)
+        .delay((d, index) => index * 42 + 80)
+        .ease(d3.easeCubicOut)
+        .attr("r", d => fieldDisplayRadius(d) * .52);
+
+      field.append("text")
+        .attr("class", "emotion-label")
+        .attr("text-anchor", "middle")
+        .attr("opacity", 0)
+        .each(function(d) {
+          const text = d3.select(this);
+          text.append("tspan").attr("x", 0).attr("dy", "-.18em").text(d.label);
+          text.append("tspan").attr("class", "en").attr("x", 0).attr("dy", "1.18em").text(d.en);
+        });
+
+      field.select("text")
+        .transition("label")
+        .duration(520)
+        .delay((d, index) => 420 + index * 32)
+        .attr("opacity", 1);
+    }
+
+    function drawNodes() {
+      nodeSelection = layers.nodes.selectAll("g.art-node")
+        .data(artworks, d => d.id)
+        .join(enter => {
+          const g = enter.append("g")
+            .attr("class", "art-node")
+            .attr("transform", d => nodeTransform(d, 0, 0))
+            .on("click", (event, d) => {
+              event.stopPropagation();
+              selectArtwork(d);
+            })
+            .on("mousemove", (event, d) => showHover(event, d))
+            .on("mouseleave", hideHover);
+
+          g.append("circle")
+            .attr("class", "halo")
+            .attr("r", d => nodeRadius(d) + 7)
+            .attr("fill", d => hexToRgba(primaryMood(d).color, .12))
+            .attr("stroke", d => hexToRgba(primaryMood(d).color, .48))
+            .attr("stroke-width", 1.2)
+            .attr("opacity", .72);
+
+          g.append("image")
+            .attr("class", "thumb")
+            .attr("href", d => d.thumbUrl || d.imageUrl)
+            .attr("clip-path", d => `url(#clip-${safeId(d.id)})`)
+            .attr("x", d => -nodeRadius(d) * .86)
+            .attr("y", d => -nodeRadius(d) * .86)
+            .attr("width", d => nodeRadius(d) * 1.72)
+            .attr("height", d => nodeRadius(d) * 1.72)
+            .attr("preserveAspectRatio", "xMidYMid slice")
+            .attr("opacity", .9);
+
+          g.each(function(d) {
+            const group = d3.select(this);
+            d.moods.slice(0, 3).forEach((mood, index) => {
+              const emotion = emotionMap[mood.id];
+              const r = nodeRadius(d) + 3.3 + index * 3.2;
+              const full = 2 * Math.PI * r;
+              group.append("circle")
+                .attr("class", "mood-ring")
+                .attr("r", r)
+                .attr("fill", "none")
+                .attr("stroke", emotion.color)
+                .attr("stroke-width", 1.8)
+                .attr("stroke-linecap", "round")
+                .attr("stroke-dasharray", `${full * mood.weight} ${full}`)
+                .attr("transform", `rotate(${index * 118 - 72})`)
+                .attr("opacity", .86);
+            });
+          });
+
+          return g;
+        });
+
+      nodeSelection
+        .transition()
+        .duration(980)
+        .delay(d => seeded(d.id + "intro") * 360)
+        .ease(d3.easeCubicOut)
+        .attr("transform", d => nodeTransform(d, 1));
+
+      if (driftTimer) driftTimer.stop();
+      driftTimer = d3.timer(elapsed => {
+        if (!nodeSelection) return;
+        const intro = Math.min(1, elapsed / 1500);
+        nodeSelection.attr("transform", d => nodeTransform(d, intro, elapsed));
+        if (activeEmotion || isFocusTransitioning()) drawSelectionLinks();
+        updateGravityField(elapsed);
+      });
+    }
+
+    function selectArtwork(artwork) {
+      selected = artwork;
+      if (nodeSelection) {
+        const hit = nodeSelection.filter(d => d.id === artwork.id);
+        hit.classed("pop", true);
+        window.setTimeout(() => hit.classed("pop", false), 360);
+      }
+      renderPanel(artwork);
+      drawSelectionLinks();
+      updateVisualState();
+    }
+
+    function drawSelectionLinks() {
+      if (!layers.links) return;
+      const links = activeEmotion
+        ? artworks.filter(art => hasMood(art, activeEmotion)).map(artwork => {
+          const emotion = emotionMap[activeEmotion];
+          const mood = artwork.moods.find(item => item.id === activeEmotion) || { id: activeEmotion, weight: .28 };
+          return {
+            key: `emotion-${artwork.id}`,
+            mood,
+            emotion,
+            start: emotionPoint(emotion),
+            end: animatedArtworkPoint(artwork),
+            active: true
+          };
+        })
+        : selected.moods.slice(0, 3).map(mood => {
+          const emotion = emotionMap[mood.id];
+          return {
+            key: `selected-${mood.id}`,
+            mood,
+            emotion,
+            start: animatedArtworkPoint(selected),
+            end: emotionPoint(emotion),
+            active: false
+          };
+        });
+      layers.links.selectAll("line")
+        .data(links, d => d.key)
+        .join("line")
+        .attr("class", "link-line")
+        .attr("x1", d => d.start.x)
+        .attr("y1", d => d.start.y)
+        .attr("x2", d => d.end.x)
+        .attr("y2", d => d.end.y)
+        .attr("stroke", d => hexToRgba(d.emotion.color, d.active ? .34 : .46))
+        .attr("stroke-width", d => d.active ? .8 + d.mood.weight * 1.8 : 1.2 + d.mood.weight * 2.4)
+        .attr("opacity", d => d.active ? .72 : 1);
+    }
+
+    function updateVisualState() {
+      const matches = artworks.filter(art => !activeEmotion || hasMood(art, activeEmotion));
+      document.getElementById("artCount").textContent = artworks.length;
+      document.getElementById("moodCount").textContent = EMOTIONS.length;
+      document.getElementById("matchCount").textContent = matches.length;
+
+      if (nodeSelection) {
+        nodeSelection
+          .classed("dim", d => activeEmotion && !hasMood(d, activeEmotion))
+          .classed("selected", d => selected && d.id === selected.id);
+      }
+      drawSelectionLinks();
+      drawGravityField();
+      if (layers.fields) {
+        layers.fields.selectAll("g.field")
+          .transition("state")
+          .duration(620)
+          .ease(d3.easeCubicOut)
+          .style("opacity", d => !activeEmotion ? 1 : d.id === activeEmotion ? 1 : .025)
+          .style("pointer-events", d => !activeEmotion || d.id === activeEmotion ? "auto" : "none");
+
+        layers.fields.selectAll("text.emotion-label")
+          .transition("label-state")
+          .duration(420)
+          .ease(d3.easeCubicOut)
+          .attr("opacity", d => !activeEmotion || d.id === activeEmotion ? 1 : 0);
+
+        layers.fields.selectAll("circle.field-orb")
+          .interrupt("grow")
+          .transition("focus-radius")
+          .duration(760)
+          .ease(d3.easeCubicOut)
+          .attr("r", d => fieldDisplayRadius(d))
+          .attr("fill", d => hexToRgba(d.color, activeEmotion === d.id ? .16 : .12))
+          .attr("stroke", d => hexToRgba(d.color, activeEmotion === d.id ? .72 : .5))
+          .attr("stroke-width", d => activeEmotion === d.id ? 1.8 : 1.3);
+
+        layers.fields.selectAll("circle.field-core")
+          .interrupt("grow")
+          .transition("focus-radius")
+          .duration(760)
+          .ease(d3.easeCubicOut)
+          .attr("r", d => fieldDisplayRadius(d) * .52)
+          .attr("stroke", d => hexToRgba(d.color, activeEmotion === d.id ? .64 : .46));
+      }
+    }
+
+    function drawGravityField() {
+      if (!layers.gravity) return;
+      layers.gravity.html("");
+      if (!tourMode || !activeEmotion) return;
+
+      const emotion = emotionMap[activeEmotion];
+      const center = emotionPoint(emotion);
+      const rayCount = 54;
+      const dustCount = 120;
+      const maxRadius = Math.max(width, height) * .64;
+      const rays = d3.range(rayCount).map(index => {
+        const angle = (index / rayCount) * Math.PI * 2 + seeded(`${emotion.id}-ray-${index}`) * .08;
+        const start = focusedFieldRadius(emotion) * (.38 + seeded(`${emotion.id}-ray-start-${index}`) * .24);
+        const length = maxRadius * (.58 + seeded(`${emotion.id}-ray-length-${index}`) * .52);
+        return { index, angle, start, length, width: .45 + seeded(`${emotion.id}-ray-width-${index}`) * 1.8 };
+      });
+      const dust = d3.range(dustCount).map(index => {
+        const angle = seeded(`${emotion.id}-dust-angle-${index}`) * Math.PI * 2;
+        const radius = focusedFieldRadius(emotion) * (.22 + seeded(`${emotion.id}-dust-radius-${index}`) * 2.45);
+        return {
+          index,
+          angle,
+          radius,
+          size: 1.1 + seeded(`${emotion.id}-dust-size-${index}`) * 3.1,
+          speed: .55 + seeded(`${emotion.id}-dust-speed-${index}`) * 1.25
+        };
+      });
+
+      const group = layers.gravity
+        .append("g")
+        .attr("class", "gravity-field")
+        .attr("data-emotion", activeEmotion)
+        .style("--gravity-color", emotion.color)
+        .attr("transform", `translate(${center.x},${center.y})`);
+
+      group.append("circle")
+        .attr("class", "gravity-aura")
+        .attr("r", focusedFieldRadius(emotion) * 1.36)
+        .attr("fill", "url(#gravityRayGlow)")
+        .attr("opacity", .62);
+
+      group.selectAll("circle.gravity-ring")
+        .data([1.08, 1.55, 2.12])
+        .join("circle")
+        .attr("class", "gravity-ring")
+        .attr("r", d => focusedFieldRadius(emotion) * d)
+        .attr("fill", "none")
+        .attr("stroke", emotion.color)
+        .attr("stroke-width", (d, index) => 1.2 - index * .18)
+        .attr("stroke-dasharray", (d, index) => `${8 + index * 6} ${16 + index * 8}`)
+        .attr("opacity", (d, index) => .34 - index * .07);
+
+      group.selectAll("line.gravity-ray")
+        .data(rays)
+        .join("line")
+        .attr("class", "gravity-ray")
+        .attr("x1", d => Math.cos(d.angle) * d.start)
+        .attr("y1", d => Math.sin(d.angle) * d.start)
+        .attr("x2", d => Math.cos(d.angle) * d.length)
+        .attr("y2", d => Math.sin(d.angle) * d.length)
+        .attr("stroke", emotion.color)
+        .attr("stroke-width", d => d.width)
+        .attr("stroke-linecap", "round")
+        .attr("opacity", d => .12 + seeded(`${emotion.id}-ray-opacity-${d.index}`) * .22);
+
+      group.selectAll("circle.gravity-dust")
+        .data(dust)
+        .join("circle")
+        .attr("class", "gravity-dust")
+        .attr("r", d => d.size)
+        .attr("cx", d => Math.cos(d.angle) * d.radius)
+        .attr("cy", d => Math.sin(d.angle) * d.radius)
+        .attr("fill", emotion.color)
+        .attr("opacity", d => .18 + seeded(`${emotion.id}-dust-opacity-${d.index}`) * .52);
+    }
+
+    function updateGravityField(elapsed = 0) {
+      if (!layers.gravity) return;
+      if (!tourMode || !activeEmotion) {
+        layers.gravity.selectAll("*").remove();
+        return;
+      }
+      if (!layers.gravity.select(".gravity-field").node()) drawGravityField();
+      const phase = elapsed * .001;
+      layers.gravity.selectAll(".gravity-ray")
+        .attr("stroke-dasharray", (d, index) => `${36 + (index % 5) * 9} ${18 + (index % 4) * 7}`)
+        .attr("stroke-dashoffset", (d, index) => -elapsed * (.035 + (index % 7) * .006));
+      layers.gravity.selectAll(".gravity-ring")
+        .attr("transform", (d, index) => `rotate(${(elapsed * (.008 + index * .004)) % 360})`)
+        .attr("opacity", (d, index) => .24 + Math.sin(phase * 1.4 + index) * .08);
+      layers.gravity.selectAll(".gravity-dust")
+        .attr("cx", d => Math.cos(d.angle + phase * d.speed * .12) * (d.radius + Math.sin(phase * d.speed + d.index) * 18))
+        .attr("cy", d => Math.sin(d.angle + phase * d.speed * .12) * (d.radius + Math.cos(phase * d.speed + d.index) * 18))
+        .attr("opacity", d => .28 + Math.sin(phase * 2.4 * d.speed + d.index) * .18);
+    }
+
+    function renderPanel(artwork) {
+      const profile = profileFor(artwork);
+      const title = displayTitle(artwork);
+      const artist = displayArtist(artwork);
+      const moodBadges = artwork.moods.slice(0, 3).map(mood => {
+        const emotion = emotionMap[mood.id];
+        return `<span class="mood-badge" style="--mood:${emotion.color}"><i></i>${emotion.label} ${Math.round(mood.weight * 100)}%</span>`;
+      }).join("");
+
+      document.getElementById("artPanel").innerHTML = `
+        <div class="art-hero" id="artHero">
+          <span class="source-pill">${escapeHtml(artwork.source || "Online")}</span>
+          <img class="art-backdrop" src="${artwork.imageUrl}" alt="">
+          <img class="art-image" id="panelArtworkImage" src="${artwork.imageUrl}" alt="${escapeHtml(title)}">
+        </div>
+        <div class="art-body">
+          <div class="mood-stack">${moodBadges}</div>
+          <h2 class="art-title">${escapeHtml(title)}</h2>
+          <div class="artist">${escapeHtml(artist)} · ${escapeHtml(artwork.date || artwork.year || "")}</div>
+          <div class="reading">
+            <div class="reading-block"><b>氛围描述</b><p>${escapeHtml(profile.atmosphere)}</p></div>
+            <div class="reading-block"><b>背景故事</b><p>${escapeHtml(profile.story)}</p></div>
+            <div class="reading-block"><b>欣赏指南</b><p>${escapeHtml(profile.guide)}</p></div>
+          </div>
+          <div class="source-actions">
+            <button class="source-button primary" id="sourceButton">馆藏页面 / Collection</button>
+            <button class="source-button share" id="shareButton">生成分享卡 / Share Card</button>
+          </div>
+        </div>
+      `;
+      document.getElementById("sourceButton").addEventListener("click", () => window.open(artwork.sourceUrl, "_blank", "noopener"));
+      document.getElementById("shareButton").addEventListener("click", () => openShareCard(artwork));
+      fitPanelArtwork();
+    }
+
+    function openShareCard(artwork) {
+      selected = artwork;
+      renderShareCard(artwork);
+      renderAuthorCard(artwork);
+      shareStatus.textContent = "HTML 3:4 预览";
+      shareModal.hidden = false;
+    }
+
+    function closeShareCard() {
+      shareModal.hidden = true;
+    }
+
+    function renderShareCard(artwork) {
+      const profile = profileFor(artwork);
+      const moods = artwork.moods.slice(0, 3).map(mood => emotionMap[mood.id]);
+      const isPortrait = artwork.orientation === "portrait" || (artwork.height && artwork.width && artwork.height > artwork.width);
+      const title = displayTitle(artwork);
+      const artist = displayArtist(artwork);
+      shareCard.classList.toggle("portrait-card", isPortrait);
+      shareCard.style.setProperty("--card-accent", moods[0]?.color || "#f1be62");
+      shareCard.style.setProperty("--card-second", moods[1]?.color || "#77e5ff");
+      shareCard.style.setProperty("--card-third", moods[2]?.color || "#ff6a9b");
+      const moodBadges = artwork.moods.slice(0, 3).map(mood => {
+        const emotion = emotionMap[mood.id];
+        return `<span>${escapeHtml(emotion.label)} ${Math.round(mood.weight * 100)}%</span>`;
+      }).join("");
+      shareCard.innerHTML = `
+        <div class="share-kicker">
+          <span>情绪美术馆</span>
+          <span>${escapeHtml(artwork.source || "Online")}</span>
+        </div>
+        <div class="share-art">
+          <img class="blur" src="${artwork.imageUrl}" alt="">
+          <img class="main" src="${artwork.imageUrl}" alt="${escapeHtml(title)}">
+        </div>
+        <div class="share-copy">
+          <div>
+            <h3>${escapeHtml(title)}</h3>
+            <div class="share-meta">${escapeHtml(artist)} · ${escapeHtml(artwork.date || artwork.year || "")}</div>
+          </div>
+          <div class="share-moods">${moodBadges}</div>
+          <div class="share-note-grid">
+            <p><b>氛围描述</b>${escapeHtml(profile.atmosphere)}</p>
+            <p><b>背景故事</b>${escapeHtml(profile.story)}</p>
+            <p><b>欣赏指南</b>${escapeHtml(profile.guide)}</p>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderAuthorCard(artwork) {
+      const moods = artwork.moods.slice(0, 3).map(mood => emotionMap[mood.id]);
+      const author = authorProfile(artwork);
+      authorCard.style.setProperty("--card-accent", moods[0]?.color || "#f1be62");
+      authorCard.style.setProperty("--card-second", moods[1]?.color || "#77e5ff");
+      authorCard.style.setProperty("--card-third", moods[2]?.color || "#ff6a9b");
+      authorCard.innerHTML = `
+        <div class="share-kicker">
+          <span>作者生平卡</span>
+          <span>Artist Profile</span>
+        </div>
+        <div class="author-head">
+          <div class="author-avatar">${author.avatarImage ? `<img src="${author.avatarImage}" alt="${escapeHtml(author.name)}">` : escapeHtml(author.avatar)}</div>
+          <div>
+            <p class="author-name">${escapeHtml(author.name)}</p>
+            <div class="author-years">${escapeHtml(author.years)}</div>
+          </div>
+        </div>
+        <p class="author-bio">${escapeHtml(author.bio)}</p>
+        <p class="author-note"><b>关于这幅画</b>${escapeHtml(displayTitle(artwork))} 属于 ${escapeHtml(displayArtist(artwork))} 的作品线索之一。左侧卡片用于分享作品本身；这张卡辅助理解作者背景。</p>
+      `;
+    }
+
+    async function downloadShareCard() {
+      if (!selected || !shareCard) return;
+      const format = shareFormat?.value === "jpg" ? "jpg" : "png";
+      shareStatus.textContent = `正在生成 ${format.toUpperCase()}...`;
+      try {
+        await waitForShareImages();
+        await downloadShareImage(format);
+        shareStatus.textContent = `已下载 ${format.toUpperCase()} 分享卡`;
+      } catch (error) {
+        console.warn(error);
+        shareStatus.textContent = "图片生成失败，请稍后重试";
+      }
+    }
+
+    function waitForShareImages() {
+      const images = [...shareCard.querySelectorAll("img")];
+      return Promise.all(images.map(image => {
+        if (image.complete && image.naturalWidth) return Promise.resolve();
+        return new Promise(resolve => {
+          image.addEventListener("load", resolve, { once: true });
+          image.addEventListener("error", resolve, { once: true });
+        });
+      }));
+    }
+
+    function downloadShareHtml() {
+      const html = `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(selected.title)} 情绪卡</title><style>${shareCardCss()}</style></head><body>${shareCard.outerHTML}</body></html>`;
+      const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      triggerDownload(url, `${fileSlug(displayTitle(selected))}-emotion-card.html`);
+      setTimeout(() => URL.revokeObjectURL(url), 800);
+    }
+
+    async function downloadShareImage(format = "png") {
+      const blob = await renderShareCardBlob(format);
+      const url = URL.createObjectURL(blob);
+      triggerDownload(url, `${fileSlug(displayTitle(selected))}-emotion-card.${format}`);
+      setTimeout(() => URL.revokeObjectURL(url), 1200);
+    }
+
+    async function renderShareCardBlob(format = "png") {
+      const width = 900;
+      const height = 1200;
+      const clone = shareCard.cloneNode(true);
+      clone.removeAttribute("id");
+      clone.style.width = `${width}px`;
+      clone.style.height = `${height}px`;
+      clone.style.maxWidth = "none";
+      clone.style.boxSizing = "border-box";
+      await inlineCloneImages(shareCard, clone);
+      const host = document.createElement("div");
+      host.className = "share-export-root";
+      host.style.cssText = [
+        "position:fixed",
+        "left:-10000px",
+        "top:0",
+        `width:${width}px`,
+        `height:${height}px`,
+        "overflow:hidden",
+        "background:#080a15",
+        "z-index:-1"
+      ].join(";");
+      const style = document.createElement("style");
+      style.textContent = shareExportCss(width, height);
+      host.append(style, clone);
+      document.body.appendChild(host);
+      try {
+        if (!window.html2canvas) throw new Error("html2canvas is not loaded");
+        const canvas = await window.html2canvas(clone, {
+          backgroundColor: format === "jpg" ? "#080a15" : null,
+          width,
+          height,
+          scale: 1,
+          useCORS: true,
+          allowTaint: false,
+          logging: false
+        });
+        if (format === "jpg") {
+          return await canvasToJpegBlob(canvas);
+        }
+        return await canvasToBlob(canvas, format);
+      } finally {
+        host.remove();
+      }
+    }
+
+    async function inlineCloneImages(sourceNode, cloneNode) {
+      const sourceImages = [...sourceNode.querySelectorAll("img")];
+      const cloneImages = [...cloneNode.querySelectorAll("img")];
+      await Promise.all(cloneImages.map(async (image, index) => {
+        const source = sourceImages[index] || image;
+        const url = source.currentSrc || source.src || image.getAttribute("src");
+        if (!url || url.startsWith("data:")) return;
+        const dataUrl = await imageSourceToDataUrl(source, exportableImageUrl(url));
+        image.setAttribute("src", dataUrl || url);
+      }));
+    }
+
+    function exportableImageUrl(url) {
+      if (window.location.protocol === "file:" && selected?.remoteUrl) {
+        return selected.remoteUrl;
+      }
+      return url;
+    }
+
+    async function imageSourceToDataUrl(image, url) {
+      if (window.location.protocol === "file:") {
+        const embedded = await loadEmbeddedExportImage(selected?.id);
+        if (embedded) return embedded;
+      }
+      try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`Image fetch failed: ${response.status}`);
+        const blob = await response.blob();
+        return await blobToDataUrl(blob);
+      } catch (error) {
+        try {
+          const canvas = document.createElement("canvas");
+          canvas.width = image.naturalWidth || image.width;
+          canvas.height = image.naturalHeight || image.height;
+          const context = canvas.getContext("2d");
+          context.drawImage(image, 0, 0, canvas.width, canvas.height);
+          return canvas.toDataURL("image/png");
+        } catch (canvasError) {
+          console.warn(canvasError);
+          return await loadEmbeddedExportImage(selected?.id);
+        }
+      }
+    }
+
+    function loadEmbeddedExportImage(id) {
+      if (!id) return Promise.resolve("");
+      window.ART_NEBULA_EXPORT_IMAGES = window.ART_NEBULA_EXPORT_IMAGES || {};
+      if (window.ART_NEBULA_EXPORT_IMAGES[id]) return Promise.resolve(window.ART_NEBULA_EXPORT_IMAGES[id]);
+      if (exportImageRequests[id]) return exportImageRequests[id];
+      exportImageRequests[id] = new Promise(resolve => {
+        const script = document.createElement("script");
+        script.src = `art-nebula-assets/export-data/${safeId(id)}.js`;
+        script.onload = () => resolve(window.ART_NEBULA_EXPORT_IMAGES?.[id] || "");
+        script.onerror = () => resolve("");
+        document.head.appendChild(script);
+      });
+      return exportImageRequests[id];
+    }
+
+    function blobToDataUrl(blob) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    }
+
+    function loadImage(url) {
+      return new Promise((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => resolve(image);
+        image.onerror = reject;
+        image.src = url;
+      });
+    }
+
+    function canvasToBlob(canvas, format) {
+      const type = format === "jpg" ? "image/jpeg" : "image/png";
+      return new Promise((resolve, reject) => {
+        canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error("Canvas export failed")), type, .94);
+      });
+    }
+
+    function canvasToJpegBlob(canvas) {
+      const flattened = document.createElement("canvas");
+      flattened.width = canvas.width;
+      flattened.height = canvas.height;
+      const context = flattened.getContext("2d");
+      context.fillStyle = "#080a15";
+      context.fillRect(0, 0, flattened.width, flattened.height);
+      context.drawImage(canvas, 0, 0);
+      return canvasToBlob(flattened, "jpg");
+    }
+
+    function triggerDownload(url, filename) {
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    }
+
+    function fitPanelArtwork() {
+      const hero = document.getElementById("artHero");
+      const image = document.getElementById("panelArtworkImage");
+      if (!hero || !image) return;
+      const apply = () => {
+        const width = hero.clientWidth || 398;
+        const naturalWidth = image.naturalWidth || 4;
+        const naturalHeight = image.naturalHeight || 3;
+        const ratioHeight = width * naturalHeight / naturalWidth;
+        const height = Math.max(218, Math.min(430, ratioHeight + 24));
+        hero.style.setProperty("--hero-height", `${Math.round(height)}px`);
+      };
+      if (image.complete && image.naturalWidth) {
+        apply();
+      } else {
+        image.addEventListener("load", apply, { once: true });
+      }
+    }
+
+    function showHover(event, artwork) {
+      hoverLabel.hidden = false;
+      hoverLabel.style.left = `${event.clientX}px`;
+      hoverLabel.style.top = `${event.clientY}px`;
+      const moods = artwork.moods.slice(0, 3).map(m => emotionMap[m.id].label).join(" / ");
+      hoverLabel.innerHTML = `
+        <img src="${artwork.imageUrl}" alt="">
+        <div><b>${escapeHtml(displayTitle(artwork))}</b><span>${escapeHtml(displayArtist(artwork))} · ${escapeHtml(moods)}</span></div>
+      `;
+    }
+
+    function hideHover() {
+      hoverLabel.hidden = true;
+    }
+
+    function playRoute() {
+      if (routeTimer || tourMode) {
+        stopRoute(true);
+        return;
+      }
+      enterTourMode();
+      advanceTour(1, false);
+    }
+
+    function enterTourMode() {
+      routeIndex = -1;
+      tourMode = true;
+      document.body.classList.add("tour-mode");
+      routeButton.classList.add("active");
+      routeButton.innerHTML = "<span>退出漫游</span><small>Exit Tour</small>";
+      renderAtlas();
+    }
+
+    function stopRoute(restore = false) {
+      if (routeTimer) clearInterval(routeTimer);
+      routeTimer = null;
+      if (!tourMode && !restore) return;
+      tourMode = false;
+      document.body.classList.remove("tour-mode");
+      routeButton.classList.remove("active");
+      routeButton.innerHTML = "<span>情绪漫游</span><small>Emotion Tour</small>";
+      updateTourTitle(null);
+      if (restore) {
+        renderAtlas();
+      }
+    }
+
+    function advanceTour(direction = 1, manual = false) {
+      if (!tourMode) return;
+      const route = TOUR_ROUTE_IDS.map(id => emotionMap[id]).filter(Boolean);
+      if (!route.length) return;
+      routeIndex = (routeIndex + direction + route.length) % route.length;
+      const emotion = route[routeIndex];
+      const candidates = artworks
+        .filter(art => hasMood(art, emotion.id))
+        .sort((a, b) => {
+          const aw = a.moods.find(mood => mood.id === emotion.id)?.weight || 0;
+          const bw = b.moods.find(mood => mood.id === emotion.id)?.weight || 0;
+          return bw - aw || (b.fame || 0) - (a.fame || 0);
+        });
+      const artwork = candidates[0] || artworks[routeIndex % artworks.length];
+      setActiveEmotion(emotion.id);
+      if (artwork) {
+        selected = artwork;
+        renderPanel(artwork);
+      }
+      updateTourTitle(emotion);
+      updateCompass();
+      updateVisualState();
+      drawGravityField();
+      zoomToEmotion(emotion.id);
+      pulseTour(manual ? "manual" : "auto");
+    }
+
+    function pulseTour() {
+      document.body.classList.remove("tour-flash");
+      void document.body.offsetWidth;
+      document.body.classList.add("tour-flash");
+      window.setTimeout(() => document.body.classList.remove("tour-flash"), 560);
+    }
+
+    function updateTourTitle(emotion) {
+      if (!tourTitle) return;
+      if (!emotion) {
+        tourTitle.style.removeProperty("--tour-color");
+        tourTitle.innerHTML = "<b>情绪漫游</b><span>Emotion Tour</span>";
+        return;
+      }
+      const count = artworks.filter(art => hasMood(art, emotion.id)).length;
+      const copy = EMOTION_TOUR_COPY[emotion.id] || { line: emotion.spell, keywords: [emotion.label, emotion.en] };
+      const keywords = copy.keywords.map(keyword => `<i>${escapeHtml(keyword)}</i>`).join("");
+      tourTitle.style.setProperty("--tour-color", emotion.color);
+      tourTitle.innerHTML = `
+        <b>${escapeHtml(emotion.label)}</b>
+        <span>${escapeHtml(emotion.en)} · ${count} works</span>
+        <p class="tour-poem">${escapeHtml(copy.line)}</p>
+        <div class="tour-keywords">${keywords}</div>
+        <div class="tour-nav-hint">Use arrow keys to drift through emotions</div>
+      `;
+    }
+
+    async function loadAicExpansion() {
+      try {
+        const existing = new Set(artworks.map(d => d.id));
+        loadStatus.textContent = "";
+        const batches = await Promise.all(AIC_QUERIES.map(async query => {
+          const fields = "id,title,artist_display,artist_title,date_display,image_id,artwork_type_title,classification_title,style_title";
+          const url = `https://api.artic.edu/api/v1/artworks/search?q=${encodeURIComponent(query.q)}&fields=${fields}&limit=${query.limit}`;
+          const data = await fetchJson(url);
+          return (data.data || []).map(item => fromAicRecord(item, query));
+        }));
+
+        const loaded = batches.flat().filter(artwork => {
+          if (!artwork || !artwork.imageUrl) return false;
+          if (existing.has(artwork.id)) return false;
+          existing.add(artwork.id);
+          return true;
+        });
+
+        artworks = [...artworks, ...loaded].slice(0, 136).map(normalizeArtwork);
+        if (!artworks.find(art => art.id === selected.id)) selected = artworks[0];
+        loadStatus.textContent = "";
+        renderAtlas();
+      } catch (error) {
+        console.warn(error);
+        loadStatus.textContent = "";
+      }
+    }
+
+    function fromAicRecord(item, query) {
+      if (!item.image_id || !item.title) return null;
+      const object = {
+        title: item.title,
+        objectName: item.artwork_type_title,
+        classification: item.classification_title || item.style_title
+      };
+      const moods = deriveMoods(object, query.moods);
+      return normalizeArtwork({
+        id: `aic-${item.id}`,
+        title: item.title,
+        artist: item.artist_title || shortArtist(item.artist_display) || "Unknown Artist",
+        date: item.date_display || "",
+        imageUrl: `https://www.artic.edu/iiif/2/${item.image_id}/full/843,/0/default.jpg`,
+        sourceUrl: `https://www.artic.edu/artworks/${item.id}`,
+        movement: item.style_title || item.classification_title || item.artwork_type_title || "馆藏作品",
+        source: "Art Institute of Chicago",
+        fame: 4 + Math.round(seeded(item.id) * 4),
+        moods
+      });
+    }
+
+    function shortArtist(text) {
+      return String(text || "").split(/\n|\(/)[0].trim();
+    }
+
+    async function fetchJson(url) {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
+      return response.json();
+    }
+
+    function normalizeArtwork(artwork) {
+      const moods = (artwork.moods || [["mystery", .4], ["dream", .34], ["solitude", .26]])
+        .map(item => Array.isArray(item) ? { id: item[0], weight: item[1] } : item)
+        .filter(item => emotionMap[item.id]);
+      const total = moods.reduce((sum, item) => sum + item.weight, 0) || 1;
+      return {
+        ...artwork,
+        moods: moods.slice(0, 3).map(item => ({ id: item.id, weight: item.weight / total }))
+      };
+    }
+
+    function deriveMoods(object, fallback) {
+      const title = `${object.title || ""} ${object.objectName || ""} ${object.classification || ""}`.toLowerCase();
+      const moods = [];
+      if (/anger|rage|fury|fire|soldier|war|battle|judith/i.test(title)) moods.push("anger");
+      if (/death|war|storm|skull|nightmare|hell|battle|crucifixion|lament/i.test(title)) moods.push("dread");
+      if (/madonna|saint|angel|annunciation|christ|virgin|temple|altar/i.test(title)) moods.push("sacred");
+      if (/flower|garden|water|landscape|river|lily|iris|tree|boat/i.test(title)) moods.push("calm");
+      if (/mother|child|girl|family|baby|portrait/i.test(title)) moods.push("tenderness");
+      if (/dance|music|festival|sun|summer/i.test(title)) moods.push("joy");
+      if (/dream|moon|night|vision|fantasy/i.test(title)) moods.push("dream");
+      const unique = [...new Set([...moods, ...fallback])].slice(0, 3);
+      return unique.map((id, index) => [id, [0.5, 0.3, 0.2][index]]);
+    }
+
+    const ARTIST_ZH = {
+      "Vincent van Gogh": "文森特·梵高",
+      "Claude Monet": "克洛德·莫奈",
+      "Edouard Manet": "爱德华·马奈",
+      "Édouard Manet": "爱德华·马奈",
+      "Edgar Degas": "埃德加·德加",
+      "Auguste Renoir": "奥古斯特·雷诺阿",
+      "Pierre-Auguste Renoir": "奥古斯特·雷诺阿",
+      "Jacques Louis David": "雅克-路易·大卫",
+      "Gustave Courbet": "居斯塔夫·库尔贝",
+      "Theodore Rousseau": "泰奥多尔·卢梭",
+      "Hans Memling": "汉斯·梅姆林",
+      "Charles Dominique Joseph Eisen": "夏尔·艾森",
+      "Camille Pissarro": "卡米耶·毕沙罗",
+      "Paul Cézanne": "保罗·塞尚",
+      "Paul Cezanne": "保罗·塞尚",
+      "Gustave Caillebotte": "居斯塔夫·卡耶博特",
+      "Carolus-Duran (Charles-Auguste-Emile Durant)": "卡罗吕斯-迪朗",
+      "Henri Fantin-Latour": "亨利·方丹-拉图尔",
+      "Mary Cassatt": "玛丽·卡萨特",
+      "Rembrandt van Rijn": "伦勃朗",
+      "Katsushika Hokusai": "葛饰北斋",
+      "John Singer Sargent": "约翰·辛格·萨金特",
+      "Winslow Homer": "温斯洛·霍默",
+      "Joseph Mallord William Turner": "约瑟夫·透纳",
+      "Francisco de Goya": "弗朗西斯科·戈雅",
+      "Francisco Goya": "弗朗西斯科·戈雅",
+      "Edvard Munch": "爱德华·蒙克",
+      "Henry Fuseli": "亨利·富塞利",
+      "Eugène Delacroix": "欧仁·德拉克洛瓦",
+      "Théodore Géricault": "泰奥多尔·籍里柯",
+      "Artemisia Gentileschi": "阿尔泰米西娅·真蒂莱斯基",
+      "William-Adolphe Bouguereau": "威廉-阿道夫·布格罗",
+      "Jean-Honoré Fragonard": "让-奥诺雷·弗拉戈纳尔",
+      "Sandro Botticelli": "桑德罗·波提切利",
+      "Odilon Redon": "奥迪隆·雷东",
+      "Arnold Böcklin": "阿诺德·勃克林",
+      "Caspar David Friedrich": "卡斯帕·大卫·弗里德里希",
+      "John Everett Millais": "约翰·埃弗里特·米莱",
+      "Peter Paul Rubens": "彼得·保罗·鲁本斯",
+      "Jacques-Louis David": "雅克-路易·大卫",
+      "Albrecht Dürer": "阿尔布雷希特·丢勒",
+      "William Blake": "威廉·布莱克",
+      "Roman": "古罗马"
+    };
+
+    const TITLE_ZH = {
+      "The Starry Night": "星夜",
+      "The Scream": "呐喊",
+      "The Third of May 1808": "1808年5月3日",
+      "The Nightmare": "梦魇",
+      "Liberty Leading the People": "自由引导人民",
+      "Saturn Devouring His Son": "萨图恩吞食其子",
+      "The Raft of the Medusa": "美杜莎之筏",
+      "Judith Beheading Holofernes": "犹滴斩杀荷罗孚尼",
+      "Dante and Virgil in Hell": "但丁与维吉尔在地狱",
+      "Dance at Le Moulin de la Galette": "煎饼磨坊的舞会",
+      "The Swing": "秋千",
+      "Primavera": "春",
+      "The Birth of Venus": "维纳斯的诞生",
+      "The Sleep of Reason Produces Monsters": "理性沉睡，心魔生焉",
+      "The Cyclops": "独眼巨人",
+      "The Isle of the Dead": "死之岛",
+      "Wanderer above the Sea of Fog": "雾海上的旅人",
+      "Ophelia": "奥菲莉娅",
+      "The Second of May 1808": "1808年5月2日",
+      "Massacre of the Innocents": "屠杀无辜者",
+      "Oath of the Horatii": "荷拉斯兄弟之誓",
+      "The Death of Sardanapalus": "萨达纳帕卢斯之死",
+      "The Combat of the Giaour and Hassan": "吉奥尔与哈桑之战",
+      "Monk by the Sea": "海边的僧侣",
+      "Melencolia I": "忧郁 I",
+      "The Ancient of Days": "太古者",
+      "Jacob's Dream": "雅各之梦",
+      "Irises": "鸢尾花",
+      "Sunflowers": "向日葵",
+      "Shoes": "鞋",
+      "L'Arlesienne: Madame Ginoux": "阿尔勒女人",
+      "Self-Portrait with a Straw Hat": "草帽自画像",
+      "Madame Roulin and Her Baby": "鲁兰夫人与婴儿",
+      "The Monet Family in Their Garden": "花园里的莫奈一家",
+      "A Woman Seated beside Flowers": "花旁坐着的女人",
+      "Eugene Murer": "欧仁·穆雷肖像",
+      "Young Girl in a Pink-and-Black Hat": "粉黑帽少女",
+      "The Death of Socrates": "苏格拉底之死",
+      "Woman in a Riding Habit": "骑装女子",
+      "The Forest in Winter at Sunset": "冬林夕照",
+      "Boating": "泛舟",
+      "Madame Manet at Bellevue": "贝尔维尤的马奈夫人",
+      "The Annunciation": "天使报喜",
+      "Tommaso and Maria Portinari": "波尔蒂纳里夫妇",
+      "Putti with a Medallion": "持圆章的小天使",
+      "The Garden of the Tuileries on a Spring Morning": "春晨的杜乐丽花园",
+      "Still Life with Apples and a Pot of Primroses": "苹果与报春花静物",
+      "Chrysanthemums in the Garden at Petit-Gennevilliers": "花园里的菊花",
+      "Henri Fantin-Latour (1836–1904)": "方丹-拉图尔肖像",
+      "Haystacks, Morning, Eragny": "埃拉尼晨间草垛",
+      "Apple Blossoms": "苹果花",
+      "Bronze nummus of Constantius I Chlorus": "古罗马铜币",
+      "Still Life with Apples and Pitcher": "苹果与水罐",
+      "Manet's Studio in the Batignolles": "巴蒂尼奥勒的马奈画室",
+      "Young Girl Bathing": "沐浴少女",
+      "Wheat Field with Cypresses": "麦田与柏树",
+      "La Berceuse (Woman Rocking a Cradle; Augustine-Alix Pellicot Roulin, 1851–1930)": "摇篮曲",
+      "Road in Etten": "埃滕之路",
+      "Oleanders": "夹竹桃",
+      "Peasant Woman Cooking by a Fireplace": "炉边做饭的农妇",
+      "Corridor in the Asylum": "疗养院走廊",
+      "The Flowering Orchard": "盛开的果园",
+      "Olive Trees": "橄榄树",
+      "Two Young Girls at the Piano": "钢琴前的两位少女",
+      "Tilla Durieux (Ottilie Godeffroy, 1880–1971)": "蒂拉·迪里厄肖像",
+      "By the Seashore": "海滨",
+      "Madame Georges Charpentier (Marguerite-Louise Lemonnier, 1848–1904) and Her Children, Georgette-Berthe (1872–1945) and Paul-Emile-Charles (1875–1895)": "夏庞蒂埃夫人与孩子们",
+      "The Daughters of Catulle Mendès, Huguette (1871–1964), Claudine (1876–1937), and Helyonne (1879–1955)": "孟戴斯家的女儿们",
+      "Nini in the Garden (Nini Lopez)": "花园里的妮妮",
+      "Reclining Nude": "斜倚裸女",
+      "Still Life with Peaches and Grapes": "桃子与葡萄",
+      "Dancer with a Fan": "持扇舞者",
+      "The Rehearsal of the Ballet Onstage": "舞台上的芭蕾排练",
+      "The Dance Class": "舞蹈课",
+      "The Dancing Class": "舞蹈教室",
+      "Sulking": "赌气",
+      "Portrait of a Woman in Gray": "灰衣女子肖像",
+      "Water Lilies": "睡莲",
+      "Arrival of the Normandy Train, Gare Saint-Lazare": "诺曼底列车进站",
+      "Cliff Walk at Pourville": "普尔维尔悬崖漫步",
+      "The Great Wave": "神奈川冲浪里",
+      "Under the Wave off Kanagawa": "神奈川冲浪里",
+      "A Young Woman and a Cavalier": "年轻女子与骑士",
+      "Angelica and Medoro": "安杰莉卡与梅多罗",
+      "Chancellor Leonhard von Eck (1480–1550)": "莱昂哈德·冯·埃克肖像",
+      "Charles de Saint-Radegonde, called Charles Coguin, Abbot of Anchin": "安尚修道院院长肖像",
+      "Diana and Cupid": "狄安娜与丘比特",
+      "Edward Miles (1752–1828)": "爱德华·迈尔斯肖像",
+      "George IV (1762–1830), When Prince of Wales": "威尔士亲王乔治四世",
+      "In the Sun": "阳光下",
+      "Joan of Arc": "圣女贞德",
+      "Judith": "犹滴",
+      "Madame Philippe Panon Desbassayns de Richemont (Jeanne Eglé Mourgue, 1778–1855) and Her Son, Eugène (1800–1859)": "里什蒙夫人与儿子",
+      "Madonna Adoring the Sleeping Child": "圣母敬拜熟睡圣婴",
+      "Madonna and Child": "圣母子",
+      "Madonna and Child with Angels": "圣母子与天使",
+      "Madonna and Child with Saints": "圣母子与圣徒",
+      "Madonna and Child with the Young Saint John the Baptist": "圣母子与幼年施洗者约翰",
+      "Miss Chambers": "钱伯斯小姐",
+      "Moses Striking the Rock": "摩西击石取水",
+      "Pirna: The Obertor from the South": "皮尔纳南望上城门",
+      "Porte de la Reine at Aigues-Mortes": "艾格莫尔特王后门",
+      "Portrait of a Man": "男子肖像",
+      "Portrait of a Man, Said to Be John Durham": "约翰·达勒姆肖像",
+      "Portrait of a Young Man": "青年男子肖像",
+      "Project for a Room for King Ludwig II (1854–1886) of Bavaria": "巴伐利亚路德维希二世房间设计",
+      "Ravine at Sorrento": "索伦托峡谷",
+      "Rest": "休憩",
+      "Saint Dominic Resuscitating Napoleone Orsini": "圣多明我复活奥尔西尼",
+      "Saint Nicholas Providing Dowries": "圣尼古拉赠嫁资",
+      "Saint Nicholas Resuscitating Three Youths": "圣尼古拉复活三青年",
+      "Saint Thomas Aquinas Aided by Saints Peter and Paul": "圣托马斯·阿奎那与圣彼得圣保罗",
+      "Scenes from the Story of the Argonauts": "阿尔戈英雄故事",
+      "Skating at Sloten, near Amsterdam": "阿姆斯特丹附近斯洛滕滑冰",
+      "Still Life with Lobster and Fruit": "龙虾与水果静物",
+      "The Angel Appearing to Zacharias": "天使显现于撒迦利亚",
+      "The Assumption of the Virgin": "圣母升天",
+      "The Betrayal of Christ": "基督被捕",
+      "The Cellier Altarpiece": "塞利耶祭坛画",
+      "The Circumcision": "割礼",
+      "The Lamentation": "哀悼基督",
+      "The Outer Harbor of Brest": "布雷斯特外港",
+      "The Story of Joseph": "约瑟的故事",
+      "The Temptation of Saint Anthony": "圣安东尼的诱惑",
+      "The Trinity": "三位一体",
+      "The Twelve Apostles: Saints Bartholomew, Andrew, Matthew, James the Greater, Thaddeus, Philip, James the Lesser, Simon, Peter, Paul, Thomas, and John": "十二使徒",
+      "Vaprio d'Adda": "瓦普里奥达达",
+      "Vase of Flowers in a Niche": "壁龛中的花瓶"
+    };
+
+    const AUTHOR_PROFILES = {
+      "Vincent van Gogh": {
+        years: "1853-1890",
+        bio: "荷兰后印象派画家，一生辗转荷兰、巴黎、阿尔勒与圣雷米。他把强烈笔触、旋转色彩和个人精神状态推到画面中央，后来成为现代艺术最重要的源头之一。"
+      },
+      "Claude Monet": {
+        years: "1840-1926",
+        bio: "法国印象派代表人物，长期研究光线、空气与时间在同一景物上的变化。睡莲、草垛、鲁昂大教堂等系列，让绘画从叙事转向对瞬间感知的捕捉。"
+      },
+      "Edouard Manet": {
+        years: "1832-1883",
+        bio: "法国现代绘画的关键转折人物。他把古典构图、都市生活和直接的观看方式放在一起，为印象派和后来的现代主义打开了入口。"
+      },
+      "Édouard Manet": {
+        years: "1832-1883",
+        bio: "法国现代绘画的关键转折人物。他把古典构图、都市生活和直接的观看方式放在一起，为印象派和后来的现代主义打开了入口。"
+      },
+      "Edgar Degas": {
+        years: "1834-1917",
+        bio: "法国画家，常画芭蕾、剧场、浴室与都市人物。他擅长用切割式构图和瞬间动作，让画面像偶然看见，却有极强的结构控制。"
+      },
+      "Auguste Renoir": {
+        years: "1841-1919",
+        bio: "法国印象派画家，偏爱人物、亲密场景和温暖肤色。他的画常有柔软的光、松动的笔触和轻盈的生活感。"
+      },
+      "Pierre-Auguste Renoir": {
+        years: "1841-1919",
+        bio: "法国印象派画家，偏爱人物、亲密场景和温暖肤色。他的画常有柔软的光、松动的笔触和轻盈的生活感。"
+      },
+      "Paul Cézanne": {
+        years: "1839-1906",
+        bio: "法国后印象派画家，被称为现代绘画之父。他把风景、静物和人物拆解成更稳定的体块关系，影响了立体主义和二十世纪艺术。"
+      },
+      "Paul Cezanne": {
+        years: "1839-1906",
+        bio: "法国后印象派画家，被称为现代绘画之父。他把风景、静物和人物拆解成更稳定的体块关系，影响了立体主义和二十世纪艺术。"
+      },
+      "Camille Pissarro": {
+        years: "1830-1903",
+        bio: "印象派核心成员，长期描绘乡村、城市街景与劳动场面。他的画没有戏剧化姿态，却很擅长让日常景象显出时间流动。"
+      },
+      "Katsushika Hokusai": {
+        years: "1760-1849",
+        bio: "日本江户时代浮世绘大师，以《富岳三十六景》和《神奈川冲浪里》闻名。他把自然力量、装饰线条和瞬间动势压缩成极具传播力的图像。"
+      },
+      "Rembrandt van Rijn": {
+        years: "1606-1669",
+        bio: "荷兰黄金时代画家，擅长肖像、宗教题材和戏剧化光影。他的画面常把人物从暗处慢慢托出，强调内心重量。"
+      },
+      "Edvard Munch": {
+        years: "1863-1944",
+        bio: "挪威画家，常把焦虑、孤独、病痛与现代人的精神震颤转化为强烈线条和高饱和色彩。《呐喊》几乎成为现代焦虑的视觉符号。"
+      },
+      "Francisco Goya": {
+        years: "1746-1828",
+        bio: "西班牙画家，从宫廷肖像走向战争、暴力和梦魇般的黑色绘画。他的作品常把历史创伤和人性暗面直接推到观众面前。"
+      },
+      "Henry Fuseli": {
+        years: "1741-1825",
+        bio: "瑞士裔英国画家，偏爱梦境、恐怖、神话与潜意识场景。他的画面常像舞台上的噩梦，把身体压迫感和心理暗影叠在一起。"
+      },
+      "Eugène Delacroix": {
+        years: "1798-1863",
+        bio: "法国浪漫主义代表画家，擅长用强烈色彩、翻涌构图和历史激情表现冲突。《自由引导人民》把革命、理想和身体动势凝成一个图像。"
+      },
+      "Théodore Géricault": {
+        years: "1791-1824",
+        bio: "法国浪漫主义先驱，关心极端处境中的身体与群体命运。《美杜莎之筏》把海难、绝望和求生意志压缩成巨大的历史现场。"
+      },
+      "Artemisia Gentileschi": {
+        years: "1593-ca.1656",
+        bio: "意大利巴洛克画家，以强烈明暗、坚决女性形象和高度戏剧性的叙事著称。她笔下的犹滴题材带有罕见的力量和现实重量。"
+      },
+      "William-Adolphe Bouguereau": {
+        years: "1825-1905",
+        bio: "法国学院派画家，技术极为精细，擅长人体、神话和戏剧化叙事。《但丁与维吉尔在地狱》把古典身体训练推向激烈冲突。"
+      },
+      "Jean-Honoré Fragonard": {
+        years: "1732-1806",
+        bio: "法国洛可可画家，擅长轻盈、暧昧和带有游戏感的贵族场景。他的画常把快乐画成一种飘起来的姿态。"
+      },
+      "Sandro Botticelli": {
+        years: "ca.1445-1510",
+        bio: "意大利文艺复兴画家，以优雅线条、神话题材和诗性人物闻名。他的画面常在春天、爱与神圣感之间保持一种轻盈平衡。"
+      },
+      "Odilon Redon": {
+        years: "1840-1916",
+        bio: "法国象征主义画家，早期偏黑白梦魇，晚期转向柔和而奇异的色彩。他擅长把神话、潜意识和不可言说的欲望画成半梦半醒的形象。"
+      },
+      "Arnold Böcklin": {
+        years: "1827-1901",
+        bio: "瑞士象征主义画家，常把神话、死亡和孤岛式空间结合起来。他的画不像现实风景，更像精神世界里一处无法抵达的岸。"
+      },
+      "Caspar David Friedrich": {
+        years: "1774-1840",
+        bio: "德国浪漫主义画家，擅长用背影、雾、山海和辽阔空间表现人的精神处境。他的风景常同时指向自然、信仰和内心迷航。"
+      },
+      "John Everett Millais": {
+        years: "1829-1896",
+        bio: "英国拉斐尔前派重要画家，重视植物、光线和文学叙事的精密描绘。《奥菲莉娅》把美、死亡和恍惚感压在同一片水面上。"
+      },
+      "Peter Paul Rubens": {
+        years: "1577-1640",
+        bio: "佛兰德斯巴洛克巨匠，以翻涌构图、强烈肉身感和戏剧化动作著称。他的历史与宗教场景常有爆发性的力量和冲突。"
+      },
+      "Albrecht Dürer": {
+        years: "1471-1528",
+        bio: "德国文艺复兴大师，精通版画、比例、透视和象征系统。《忧郁 I》把知识、停滞和无法抵达的答案压缩成一张谜题般的图像。"
+      },
+      "William Blake": {
+        years: "1757-1827",
+        bio: "英国诗人、画家和版画家，作品融合宗教幻象、个人神话和强烈的象征语言。他的图像常像一扇通往内在宇宙的门。"
+      },
+      "Jacques Louis David": {
+        years: "1748-1825",
+        bio: "法国新古典主义代表画家，以严整构图和历史叙事著称。他把政治、道德选择和古典身体语言结合成有仪式感的画面。"
+      },
+      "Jacques-Louis David": {
+        years: "1748-1825",
+        bio: "法国新古典主义代表画家，以严整构图和历史叙事著称。他把政治、道德选择和古典身体语言结合成有仪式感的画面。"
+      }
+    };
+
+    function displayArtist(artwork) {
+      const raw = String(artwork.artist || "佚名").trim();
+      if (ARTIST_ZH[raw]) return ARTIST_ZH[raw];
+      const cleaned = raw.replace(/\s*\\([^)]*\\)/g, "").replace(/,.*$/, "").trim();
+      return ARTIST_ZH[cleaned] || cleaned || "佚名";
+    }
+
+    function authorProfile(artwork) {
+      const raw = String(artwork.artist || "").trim();
+      const cleaned = raw.replace(/\s*\\([^)]*\\)/g, "").replace(/,.*$/, "").trim();
+      const profile = AUTHOR_PROFILES[raw] || AUTHOR_PROFILES[cleaned];
+      const name = displayArtist(artwork);
+      return {
+        name,
+        avatar: authorAvatar(name),
+        avatarImage: authorImage(raw, cleaned),
+        years: profile?.years || "馆藏艺术家",
+        bio: profile?.bio || `${name}的资料在当前馆藏里并不完整。可以先从这张作品的题材、年代和情绪关系进入：看它如何把个人经验、时代审美和观看者的心情连接起来。`
+      };
+    }
+
+    function authorImage(raw, cleaned) {
+      if (raw === "Vincent van Gogh" || cleaned === "Vincent van Gogh") return "art-nebula-assets/images/met-436532.jpg";
+      return "";
+    }
+
+    function authorAvatar(name) {
+      const clean = String(name || "艺").replace(/[·\s-]/g, "");
+      return clean.slice(0, 2) || "艺";
+    }
+
+    function displayTitle(artwork) {
+      const raw = String(artwork.title || "未命名").trim();
+      if (TITLE_ZH[raw]) return TITLE_ZH[raw];
+      if (/Hokusai|Katsushika/i.test(artwork.artist || "") && /wave|kanagawa/i.test(raw)) return "神奈川冲浪里";
+      const fallback = localizedTitleFallback(raw);
+      if (fallback) return fallback;
+      let short = raw
+        .replace(/\s*\\([^)]*\\)/g, "")
+        .replace(/^The\\s+/i, "")
+        .split(/[:;，,]/)[0]
+        .trim();
+      if (short.length > 34) short = `${short.slice(0, 31)}...`;
+      return short || raw;
+    }
+
+    function localizedTitleFallback(raw) {
+      const clean = String(raw || "").replace(/\s*\\([^)]*\\)/g, "").trim();
+      if (/^Portrait of a Young Woman/i.test(clean)) return "年轻女子肖像";
+      if (/^Portrait of a Young Man/i.test(clean)) return "青年男子肖像";
+      if (/^Portrait of a Woman/i.test(clean)) return "女子肖像";
+      if (/^Portrait of a Man/i.test(clean)) return "男子肖像";
+      if (/^Still Life with/i.test(clean)) return `${clean.replace(/^Still Life with\\s+/i, "").split(/,|and/i)[0].trim()}静物`;
+      if (/^Madonna and Child/i.test(clean)) return "圣母子";
+      if (/^The\\s+/.test(clean)) return clean.replace(/^The\\s+/i, "");
+      return "";
+    }
+
+    function profileFor(artwork) {
+      if (artwork.atmosphere && artwork.story && artwork.guide) {
+        return { atmosphere: artwork.atmosphere, story: artwork.story, guide: artwork.guide };
+      }
+      const [first, second, third] = artwork.moods.map(mood => emotionMap[mood.id]);
+      const title = displayTitle(artwork);
+      const artist = displayArtist(artwork);
+      return {
+        atmosphere: `${title}的主调是${first.label}，${second.label}和${third.label}像两层暗光叠在外面；它适合表达一种不止一种答案的心情。`,
+        story: `${artist}把${artwork.date || "某个时代"}的视觉经验留在画面里。看这件作品时，可以把它放回${artwork.movement || "它所属的艺术语境"}里，观察时代审美怎样变成私人感受。`,
+        guide: guideForArtwork(artwork)
+      };
+    }
+
+    function guideForArtwork(artwork) {
+      const title = displayTitle(artwork);
+      const rawTitle = String(artwork.title || title).toLowerCase();
+      const artist = displayArtist(artwork);
+      const rawArtist = String(artwork.artist || artist).toLowerCase();
+      const subject = `${rawTitle} ${title}`.toLowerCase();
+      const artistNote = artistGuideNote(rawArtist, artist);
+
+      if (/starry|星夜|night|moon|asylum|corridor|夜|疗养院|走廊/.test(subject)) {
+        return `看《${title}》时先不要急着找故事，先沿着光源和暗部移动视线：夜色、窗、道路或旋涡会把情绪带向画面深处。${artistNote}`;
+      }
+      if (/self-portrait|portrait|肖像|小姐|夫人|男子|女子|青年|少女|prince|chancellor|abbot|murer|durieux|roulin|ginoux/.test(subject)) {
+        return `看《${title}》可以先从脸部和手势进入，再退一步看衣物、椅背、背景怎样围住人物。肖像真正好看的地方，往往是“被观看的人”如何反过来看我们。${artistNote}`;
+      }
+      if (/madonna|child|baby|mother|family|children|圣母|圣婴|孩子|母|baby|roulin/.test(subject)) {
+        return `看《${title}》时先观察人物之间的距离：手臂、视线和身体倾斜会说明亲密关系的温度。再看背景是否安静，它常常决定这份温柔是日常的，还是带有仪式感的。${artistNote}`;
+      }
+      if (/flower|flowers|iris|irises|sunflowers|oleanders|chrysanthemums|orchard|blossoms|vase|花|鸢尾|向日葵|果园|花瓶/.test(subject)) {
+        return `看《${title}》时先看花朵的方向和疏密，再看颜色之间是互相推开还是互相靠近。花卉题材不只是“漂亮”，它常把生命力、脆弱和时间感压在同一个色面里。${artistNote}`;
+      }
+      if (/still life|apples|peaches|grapes|lobster|fruit|静物|苹果|葡萄|水果|龙虾/.test(subject)) {
+        return `看《${title}》时先找桌面边缘、器物轮廓和阴影的关系。静物的重点不在物品本身，而在画家如何用重量、光泽和摆放秩序，让普通物件显出性格。${artistNote}`;
+      }
+      if (/landscape|field|wheat|cypresses|road|forest|winter|sunset|ravine|river|water|garden|tree|olive|haystacks|风景|森林|麦田|橄榄|峡谷|花园|道路/.test(subject)) {
+        return `看《${title}》时先找地平线、道路或树木形成的视线通道，再观察天空和地面的明暗比例。风景画最值得看的，是自然如何变成一种心理空间。${artistNote}`;
+      }
+      if (/sea|seashore|wave|harbor|port|boating|cliff|skating|海|浪|港|船|悬崖|滑冰/.test(subject)) {
+        return `看《${title}》时先顺着水面、浪线或船只的方向移动视线，再看人物和自然的比例。海景与水面题材最有力量的地方，是它把自由、危险和呼吸感放在同一个节奏里。${artistNote}`;
+      }
+      if (/dancer|dance|dancing|ballet|music|piano|舞|芭蕾|钢琴|音乐/.test(subject)) {
+        return `看《${title}》时先看身体重心：脚尖、手臂和衣裙边缘会暴露动作正在发生还是刚刚结束。舞蹈题材的专业入口，是看画面如何把时间切成一个瞬间。${artistNote}`;
+      }
+      if (/annunciation|trinity|apostle|saint|saints|christ|angel|altar|temple|madonna|圣|天使|祭坛|基督|三位一体/.test(subject)) {
+        return `看《${title}》时先看光从哪里来，再看人物之间的手势和视线如何构成三角关系。宗教题材不要只看故事，要看画面如何用秩序、光和空白制造神圣感。${artistNote}`;
+      }
+      if (/judith|death|socrates|joan|betrayal|moses|striking|lamentation|battle|war|temptation|犹滴|死亡|背叛|圣女贞德|摩西/.test(subject)) {
+        return `看《${title}》时先找最关键的手势或武器，再看周围人物的身体方向。叙事画的张力通常不在“发生了什么”，而在每个人对那个瞬间的反应差异。${artistNote}`;
+      }
+      if (/nude|bathing|cupid|diana|angelica|medoro|seated|reclining|裸|沐浴|丘比特|狄安娜/.test(subject)) {
+        return `看《${title}》时先看身体轮廓和光线停留的位置，再看背景是否把人物推近或拉远。这个题材的观看重点，是欲望、距离和观看礼仪之间的微妙边界。${artistNote}`;
+      }
+      if (/room|project|gate|porte|pirna|architecture|design|房间|城门|建筑|设计/.test(subject)) {
+        return `看《${title}》时先找透视线和入口位置，再看装饰细节如何引导视线。建筑与室内题材的重点，是空间如何暗示权力、记忆或某种等待。${artistNote}`;
+      }
+      return `看《${title}》时可以先选一个最吸引你的局部：一块亮色、一条轮廓或一个动作，再追踪它如何牵动整张画。好的入口不是“看懂”，而是找到画面最先抓住你的那条线。${artistNote}`;
+    }
+
+    function artistGuideNote(rawArtist, artist) {
+      if (/van gogh/.test(rawArtist)) return " 特别留意笔触的方向：梵高常用线条本身制造情绪速度。";
+      if (/monet/.test(rawArtist)) return " 特别留意边缘如何被光融化：莫奈的重点常在空气，而不是物体轮廓。";
+      if (/renoir/.test(rawArtist)) return " 特别留意暖色如何贴近皮肤和衣料，雷诺阿常把人物关系画成一种温度。";
+      if (/degas/.test(rawArtist)) return " 特别留意裁切和视角，德加常让画面像被偶然截取，却暗中安排了节奏。";
+      if (/cezanne|cézanne/.test(rawArtist)) return " 特别留意物体的体块关系，塞尚会把风景或静物稳定成一种结构。";
+      if (/hokusai|katsushika/.test(rawArtist)) return " 特别留意轮廓线的节奏，北斋常把自然力量压缩成清晰而强烈的图形。";
+      if (/rembrandt/.test(rawArtist)) return " 特别留意光从暗处托出人物的方式，伦勃朗的戏剧性常来自沉默。";
+      if (/turner/.test(rawArtist)) return " 特别留意光、雾和水汽如何吞掉实体，透纳的画常像一场正在形成的天气。";
+      if (/manet/.test(rawArtist)) return " 特别留意人物和背景之间的距离，马奈常让现代生活显出一点疏离。";
+      return ` 如果不熟悉${artist}，就先从构图和光线进入，再回头看它对应的情绪标签。`;
+    }
+
+    function hasMood(artwork, emotionId) {
+      return artwork.moods.some(mood => mood.id === emotionId);
+    }
+
+    function primaryMood(artwork) {
+      return emotionMap[artwork.moods[0]?.id] || emotionMap.mystery;
+    }
+
+    function assignClusterSlots() {
+      const groups = d3.group(artworks, artwork => artwork.moods[0]?.id || "mystery");
+      for (const group of groups.values()) {
+        group
+          .sort((a, b) => (b.fame || 0) - (a.fame || 0))
+          .forEach((artwork, index) => {
+            artwork.clusterIndex = index;
+            artwork.clusterTotal = group.length;
+          });
+      }
+      [...artworks]
+        .sort((a, b) => seeded(a.id + "spread") - seeded(b.id + "spread"))
+        .forEach((artwork, index) => {
+          artwork.globalIndex = index;
+          artwork.globalTotal = artworks.length;
+          artwork.emotionSlots = {};
+        });
+      EMOTIONS.forEach(emotion => {
+        artworks
+          .filter(artwork => hasMood(artwork, emotion.id))
+          .sort((a, b) => {
+            const aw = a.moods.find(mood => mood.id === emotion.id)?.weight || 0;
+            const bw = b.moods.find(mood => mood.id === emotion.id)?.weight || 0;
+            return bw - aw || seeded(a.id + emotion.id) - seeded(b.id + emotion.id);
+          })
+          .forEach((artwork, index, group) => {
+            artwork.emotionSlots[emotion.id] = { index, total: group.length };
+          });
+        });
+      assignOverviewPoints();
+    }
+
+    function artworkPoint(artwork) {
+      return artwork.overviewPoint || overviewArtworkPoint(artwork);
+    }
+
+    function overviewArtworkPoint(artwork) {
+      const primary = primaryMood(artwork);
+      const semantic = moodAnchorPoint(artwork);
+      const count = Math.max(1, artwork.globalTotal || artworks.length || 1);
+      const index = artwork.globalIndex ?? artwork.clusterIndex ?? 0;
+      const golden = Math.PI * (3 - Math.sqrt(5));
+      const fractalDrift = Math.sin(index * .37 + seeded(primary.id + "arm") * 6.28) * .16
+        + Math.sin(index * 1.13 + seeded(artwork.id + "arm") * 6.28) * .055;
+      const angle = index * golden + seeded(artwork.id + primary.id + "angle") * .72 + fractalDrift;
+      const radiusBase = Math.pow((index + .58) / (count + .58), .58);
+      const radius = Math.max(.08, Math.min(1, radiusBase + Math.sin(index * .19) * .035 + (seeded(artwork.id + "r") - .5) * .05));
+      const nebula = {
+        x: graph.cx + Math.cos(angle) * graph.rx * 1.02 * radius,
+        y: graph.cy + Math.sin(angle) * graph.ry * .98 * radius
+      };
+      const semanticPull = .3;
+      const centerPull = .94;
+      const semanticX = graph.cx + (semantic.x - graph.cx) * centerPull;
+      const semanticY = graph.cy + (semantic.y - graph.cy) * centerPull;
+      const jitterX = (seeded(artwork.id + "x") - .5) * 18;
+      const jitterY = (seeded(artwork.id + "y") - .5) * 16;
+      return {
+        x: semanticX * semanticPull + nebula.x * (1 - semanticPull) + jitterX,
+        y: semanticY * semanticPull + nebula.y * (1 - semanticPull) + jitterY
+      };
+    }
+
+    function assignOverviewPoints() {
+      const boundsX = graph.rx * 1.08;
+      const boundsY = graph.ry * 1.06;
+      const points = artworks.map(artwork => {
+        const home = overviewArtworkPoint(artwork);
+        return {
+          artwork,
+          x: home.x,
+          y: home.y,
+          homeX: home.x,
+          homeY: home.y,
+          radius: nodeRadius(artwork) + 5
+        };
+      });
+
+      for (let iteration = 0; iteration < 56; iteration += 1) {
+        for (let i = 0; i < points.length; i += 1) {
+          for (let j = i + 1; j < points.length; j += 1) {
+            const a = points[i];
+            const b = points[j];
+            let dx = b.x - a.x;
+            let dy = b.y - a.y;
+            let distance = Math.hypot(dx, dy);
+            if (!distance) {
+              const angle = seeded(a.artwork.id + b.artwork.id + "collision") * Math.PI * 2;
+              dx = Math.cos(angle);
+              dy = Math.sin(angle);
+              distance = 1;
+            }
+            const minDistance = (a.radius + b.radius) * .78;
+            if (distance >= minDistance) continue;
+            const push = (minDistance - distance) * .5;
+            const nx = dx / distance;
+            const ny = dy / distance;
+            a.x -= nx * push;
+            a.y -= ny * push;
+            b.x += nx * push;
+            b.y += ny * push;
+          }
+        }
+
+        points.forEach(point => {
+          point.x += (point.homeX - point.x) * .022;
+          point.y += (point.homeY - point.y) * .022;
+          constrainPointToEllipse(point, boundsX, boundsY);
+        });
+      }
+
+      points.forEach(point => {
+        point.artwork.overviewPoint = { x: point.x, y: point.y };
+      });
+    }
+
+    function constrainPointToEllipse(point, boundsX, boundsY) {
+      const dx = point.x - graph.cx;
+      const dy = point.y - graph.cy;
+      const normalized = Math.hypot(dx / boundsX, dy / boundsY);
+      if (normalized <= 1) return;
+      const scale = .998 / normalized;
+      point.x = graph.cx + dx * scale;
+      point.y = graph.cy + dy * scale;
+    }
+
+    function moodAnchorPoint(artwork) {
+      const moods = artwork.moods.slice(0, 3).filter(mood => emotionMap[mood.id]);
+      if (!moods.length) return emotionPoint(emotionMap.mystery);
+      const total = moods.reduce((sum, mood) => sum + mood.weight, 0) || 1;
+      const weighted = moods.reduce((point, mood) => {
+        const emotion = emotionMap[mood.id];
+        const center = emotionPoint(emotion);
+        const weight = mood.weight / total;
+        point.x += center.x * weight;
+        point.y += center.y * weight;
+        return point;
+      }, { x: 0, y: 0 });
+      return weighted;
+    }
+
+    function focusedArtworkPoint(artwork, emotionId) {
+      if (!emotionId || !hasMood(artwork, emotionId)) return artworkPoint(artwork);
+      const emotion = emotionMap[emotionId];
+      const center = emotionPoint(emotion);
+      const slot = artwork.emotionSlots?.[emotionId] || { index: 0, total: 1 };
+      const golden = Math.PI * (3 - Math.sqrt(5));
+      const angle = slot.index * golden + seeded(artwork.id + emotionId + "focus") * .48;
+      const radius = focusedFieldRadius(emotion) * (.13 + .7 * Math.sqrt((slot.index + .72) / (slot.total + .72)));
+      const mood = artwork.moods.find(item => item.id === emotionId);
+      const weightPull = 1 - (mood?.weight || .3) * .18;
+      return {
+        x: center.x + Math.cos(angle) * radius * weightPull + (seeded(artwork.id + "fx") - .5) * 8,
+        y: center.y + Math.sin(angle) * radius * weightPull + (seeded(artwork.id + "fy") - .5) * 8
+      };
+    }
+
+    function animatedArtworkPoint(artwork) {
+      const from = focusTransition.from;
+      const to = focusTransition.to;
+      if (!from && !to) return artworkPoint(artwork);
+      const elapsed = performance.now() - focusTransition.start;
+      const t = Math.max(0, Math.min(1, elapsed / focusTransition.duration));
+      const ease = t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+      const start = from ? focusedArtworkPoint(artwork, from) : artworkPoint(artwork);
+      const end = to ? focusedArtworkPoint(artwork, to) : artworkPoint(artwork);
+      return {
+        x: start.x + (end.x - start.x) * ease,
+        y: start.y + (end.y - start.y) * ease
+      };
+    }
+
+    function isFocusTransitioning() {
+      if (!focusTransition.from && !focusTransition.to) return false;
+      return performance.now() - focusTransition.start < focusTransition.duration;
+    }
+
+    function nodeTransform(artwork, visible = 1, elapsed = 0) {
+      const point = animatedArtworkPoint(artwork);
+      const intro = Math.max(0, Math.min(1, visible));
+      const ease = 1 - Math.pow(1 - intro, 3);
+      const phase = seeded(artwork.id + "phase") * Math.PI * 2;
+      const breath = intro ? Math.sin(elapsed * .00055 + phase) : 0;
+      const driftX = breath * (2.6 + seeded(artwork.id + "dx") * 2.8) * ease;
+      const driftY = Math.cos(elapsed * .00048 + phase) * (2 + seeded(artwork.id + "dy") * 2.4) * ease;
+      const x = graph.cx + (point.x - graph.cx) * ease + driftX;
+      const y = graph.cy + (point.y - graph.cy) * ease + driftY;
+      const scale = .35 + .65 * ease;
+      return `translate(${x},${y}) scale(${scale})`;
+    }
+
+    function emotionPoint(emotion) {
+      return {
+        x: graph.cx + emotion.x * graph.rx,
+        y: graph.cy - emotion.y * graph.ry
+      };
+    }
+
+    function fieldRadius(emotion) {
+      return Math.min(graph.rx, graph.ry) * emotion.radius;
+    }
+
+    function fieldDisplayRadius(emotion) {
+      return activeEmotion === emotion.id ? focusedFieldRadius(emotion) : fieldRadius(emotion);
+    }
+
+    function focusedFieldRadius(emotion) {
+      const base = fieldRadius(emotion);
+      const room = Math.min(graph.rx * .92, graph.ry * .92);
+      return Math.min(base * 3.35, room);
+    }
+
+    function nodeRadius(artwork) {
+      return Math.max(7, Math.min(19, 6 + (artwork.fame || 5) * 1.25));
+    }
+
+    function graphMetrics() {
+      if (tourMode) {
+        return {
+          cx: tourFocusOffsetX() * .42,
+          cy: -18,
+          rx: Math.max(300, width * .33),
+          ry: Math.max(230, height * .34)
+        };
+      }
+      if (width <= 1080) {
+        return { cx: 0, cy: -height / 2 + 560, rx: Math.max(160, width * .42), ry: 230 };
+      }
+      const leftGuard = 398;
+      const rightGuard = 438;
+      const availableWidth = Math.max(560, width - leftGuard - rightGuard);
+      const availableHeight = Math.max(560, height - 120);
+      return {
+        cx: -width / 2 + leftGuard + availableWidth / 2,
+        cy: 8,
+        rx: availableWidth * .46,
+        ry: availableHeight * .42
+      };
+    }
+
+    function tourFocusOffsetX() {
+      return Math.min(240, Math.max(150, width * .15));
+    }
+
+    function animateTimeCanvas() {
+      const canvas = document.getElementById("timeCanvas");
+      const ctx = canvas.getContext("2d");
+      let dpr = window.devicePixelRatio || 1;
+      let stars = [];
+      let bubbles = [];
+
+      function resize() {
+        dpr = window.devicePixelRatio || 1;
+        canvas.width = Math.floor(window.innerWidth * dpr);
+        canvas.height = Math.floor(window.innerHeight * dpr);
+        canvas.style.width = `${window.innerWidth}px`;
+        canvas.style.height = `${window.innerHeight}px`;
+        stars = Array.from({ length: 230 }, (_, index) => ({
+          x: seeded(index + "sx") * canvas.width,
+          y: seeded(index + "sy") * canvas.height,
+          r: .65 + seeded(index + "sr") * 1.9,
+          hue: seeded(index + "sh"),
+          speed: .18 + seeded(index + "ss") * .48
+        }));
+        bubbles = Array.from({ length: 46 }, (_, index) => ({
+          x: seeded(index + "bx") * canvas.width,
+          y: seeded(index + "by") * canvas.height,
+          r: (5 + seeded(index + "br") * 28) * dpr,
+          hue: seeded(index + "bh"),
+          speed: .12 + seeded(index + "bs") * .36,
+          sway: 16 + seeded(index + "bw") * 46
+        }));
+      }
+
+      function frame(time) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+        gradient.addColorStop(0, "rgba(7, 11, 26, .92)");
+        gradient.addColorStop(.48, "rgba(20, 11, 31, .9)");
+        gradient.addColorStop(1, "rgba(4, 6, 16, .96)");
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.save();
+        ctx.globalCompositeOperation = "screen";
+        for (let i = 0; i < 9; i++) {
+          const cx = canvas.width * (.22 + i * .078) + Math.sin(time * .00013 + i) * 70 * dpr;
+          const cy = canvas.height * (.24 + (i % 4) * .15) + Math.cos(time * .00011 + i) * 48 * dpr;
+          const radius = (180 + i * 24) * dpr;
+          const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
+          glow.addColorStop(0, `rgba(${i % 3 === 0 ? "119,229,255" : i % 3 === 1 ? "255,106,155" : "241,190,98"}, .09)`);
+          glow.addColorStop(1, "rgba(0,0,0,0)");
+          ctx.fillStyle = glow;
+          ctx.beginPath();
+          ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+
+        for (const star of stars) {
+          const y = (star.y - time * star.speed * dpr * .018 + canvas.height * 2) % canvas.height;
+          const alpha = .2 + Math.sin(time * .001 + star.x) * .12;
+          ctx.fillStyle = star.hue > .72 ? `rgba(241,190,98,${alpha})` : `rgba(225,238,255,${alpha})`;
+          ctx.beginPath();
+          ctx.arc(star.x, y, star.r * dpr, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        ctx.save();
+        ctx.globalCompositeOperation = "screen";
+        for (const bubble of bubbles) {
+          const y = (bubble.y - time * bubble.speed * dpr * .05 + canvas.height * 2) % canvas.height;
+          const x = bubble.x + Math.sin(time * .00042 + bubble.r) * bubble.sway * dpr;
+          const alpha = .08 + Math.sin(time * .0007 + bubble.x) * .025;
+          ctx.strokeStyle = bubble.hue > .5 ? `rgba(241,190,98,${alpha})` : `rgba(119,229,255,${alpha})`;
+          ctx.lineWidth = Math.max(1, bubble.r * .045);
+          ctx.beginPath();
+          ctx.arc(x, y, bubble.r, 0, Math.PI * 2);
+          ctx.stroke();
+          const glow = ctx.createRadialGradient(x, y, 0, x, y, bubble.r);
+          glow.addColorStop(0, `rgba(255,255,255,${alpha * .18})`);
+          glow.addColorStop(1, "rgba(255,255,255,0)");
+          ctx.fillStyle = glow;
+          ctx.fill();
+        }
+        ctx.restore();
+
+        requestAnimationFrame(frame);
+      }
+
+      resize();
+      window.addEventListener("resize", resize);
+      requestAnimationFrame(frame);
+    }
+
+    function safeId(text) {
+      return String(text).replace(/[^a-zA-Z0-9_-]/g, "-");
+    }
+
+    function escapeHtml(text) {
+      return String(text || "").replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[char]));
+    }
+
+    function fileSlug(text) {
+      return String(text || "artwork")
+        .toLowerCase()
+        .replace(/[^a-z0-9\u4e00-\u9fa5]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .slice(0, 54) || "artwork";
+    }
+
+    function shareCardCss() {
+      const styles = [...document.querySelectorAll("style")].map(style => style.textContent).join("\n");
+      return `
+        html,body{margin:0;min-height:100%;display:grid;place-items:center;background:#080a15;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;color:#fbf2e6;padding:24px;}
+        .share-card{width:min(720px,calc(100vw - 48px));}
+        ${styles}
+      `;
+    }
+
+    function shareExportCss(width, height) {
+      return `
+        .share-export-root{
+          width:${width}px;
+          height:${height}px;
+          margin:0;
+          padding:0;
+          background:#080a15;
+          overflow:hidden;
+          font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+        }
+        .share-export-root .share-card{
+          width:${width}px !important;
+          height:${height}px !important;
+          max-width:none !important;
+          min-width:0 !important;
+          box-sizing:border-box;
+          aspect-ratio:auto !important;
+          box-shadow:none;
+        }
+        .share-export-root .share-card{
+          background:
+            radial-gradient(circle at 16% 12%, rgba(241, 190, 98, .28), transparent 30%),
+            radial-gradient(circle at 86% 34%, rgba(119, 229, 255, .2), transparent 32%),
+            radial-gradient(circle at 58% 92%, rgba(255, 106, 155, .18), transparent 36%),
+            linear-gradient(145deg, #10121e 0%, #080a15 54%, #15101d 100%) !important;
+          border-color: rgba(241, 190, 98, .48) !important;
+        }
+        .share-export-root .share-card::after{
+          border-color: rgba(241, 190, 98, .46) !important;
+          background:
+            linear-gradient(90deg, transparent 49%, rgba(241, 190, 98, .42) 50%, transparent 51%),
+            linear-gradient(0deg, transparent 49%, rgba(241, 190, 98, .42) 50%, transparent 51%) !important;
+        }
+        .share-export-root .share-card.portrait-card .share-art{
+          box-shadow:0 0 0 1px rgba(241, 190, 98, .34), 0 18px 54px rgba(0,0,0,.34) !important;
+        }
+        .share-export-root .share-kicker,
+        .share-export-root .share-meta{color:#ffe59a !important;}
+        .share-export-root .share-note-grid b{color:#a9fff0 !important;}
+        .share-export-root .share-card h3{font-size:42px;max-height:98px;}
+        .share-export-root .share-card.portrait-card h3{font-size:38px;max-height:92px;}
+        .share-export-root .share-kicker{font-size:20px;}
+        .share-export-root .share-meta{font-size:22px;}
+        .share-export-root .share-moods span{font-size:18px;padding:8px 14px;}
+        .share-export-root .share-note-grid{gap:18px;}
+        .share-export-root .share-note-grid p{font-size:20px;line-height:1.58;}
+        .share-export-root .share-note-grid p:first-child{font-size:21px;}
+        .share-export-root .share-note-grid b{font-size:18px;margin-bottom:7px;}
+        .share-export-root .share-art .main{padding:18px;}
+        .share-export-root .share-card.portrait-card .share-art .main{padding:14px;}
+      `;
+    }
+
+    function hexToRgba(hex, alpha) {
+      const normalized = String(hex).replace("#", "");
+      const value = parseInt(normalized.length === 3 ? normalized.split("").map(c => c + c).join("") : normalized, 16);
+      const r = (value >> 16) & 255;
+      const g = (value >> 8) & 255;
+      const b = value & 255;
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+
+    function seeded(seed) {
+      let hash = 2166136261;
+      const str = String(seed);
+      for (let i = 0; i < str.length; i++) {
+        hash ^= str.charCodeAt(i);
+        hash += (hash << 1) + (hash << 4) + (hash << 7) + (hash << 8) + (hash << 24);
+      }
+      return ((hash >>> 0) % 10000) / 10000;
+    }
+  </script>
+</body>
+</html>

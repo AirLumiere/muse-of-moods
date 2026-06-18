@@ -1,0 +1,12 @@
+node_modules/
+.wrangler/
+.DS_Store
+*.log
+
+# Local environment files. Do not commit Cloudflare or deployment tokens.
+.env
+.env.*
+
+# Temporary screenshots and generated previews.
+*.tmp
+tmp/

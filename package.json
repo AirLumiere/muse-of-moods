@@ -1,0 +1,37 @@
+{
+  "name": "emotion-museum",
+  "version": "0.1.0",
+  "private": true,
+  "description": "An interactive emotion atlas for exploring public-domain and open-access artworks.",
+  "homepage": "https://emotion-museum.kesenlab.workers.dev",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AirLumiere/emotion-museum.git"
+  },
+  "bugs": {
+    "url": "https://github.com/AirLumiere/emotion-museum/issues"
+  },
+  "keywords": [
+    "art",
+    "museum",
+    "emotion",
+    "data-visualization",
+    "digital-humanities",
+    "interactive-art",
+    "d3",
+    "cloudflare-workers"
+  ],
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "whoami": "wrangler whoami",
+    "check": "node --check src/worker.js"
+  },
+  "devDependencies": {
+    "wrangler": "^4.101.0"
+  },
+  "dependencies": {
+    "html2canvas": "^1.4.1"
+  }
+}
